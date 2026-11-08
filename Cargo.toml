@@ -4,3 +4,22 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+log = "0.4.35"
+
+tuhka = { version = "0.1.11", features = ["window", "bytemuck"] }
+leimu-spirv = "0.4.2"
+
+raw-window-handle = "0.6.2"
+
+bitflags = { version = "2.13.2", features = ["bytemuck"] }
+
+portable-atomic = "1.15.0"
+portable-atomic-util = { version = "0.2.8", features = ["std"] }
+parking_lot = "0.13.0"
+
+smallvec = "1.16.5"
+arrayvec = "0.7.8"
+ahash = "0.8.12"
+leimu-mem = "0.4.2"
+
+bytemuck = { version = "1.25.2", features = ["derive"] }
