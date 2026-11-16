@@ -1,8 +1,10 @@
 use super::*;
 
+use std::alloc::Global;
+
 /// Iterator that moves out of [`Sorted`].
 pub struct IntoIter<T> {
-    pub(super) iter: alloc_vec::IntoIter<SortByKeyWrap<T>, (), u32>,
+    pub(super) iter: alloc_vec::IntoIter<SortByKeyWrap<T>, Global, u32>,
 }
 
 impl<T> Iterator for IntoIter<T> {

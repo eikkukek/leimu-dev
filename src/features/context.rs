@@ -4,7 +4,6 @@ use core::{
     ffi::CStr,
     ops::Deref,
 };
-use std::collections::HashMap;
 
 use tuhka::vk;
 
@@ -18,6 +17,7 @@ use features::{
     ExtendPhysicalDeviceFeatures2Obj, ExtendsPhysicalDeviceFeatures2Ext,
 };
 
+/*
 /// A trait for working with flag support dynamically.
 pub trait FlagSupport<Flags>: Any + Send + Sync {
 
@@ -32,7 +32,7 @@ pub trait FlagSupport<Flags>: Any + Send + Sync {
     
     /// Creates a [`FlagSupportObj`] containing all current flags set in self.
     fn to_obj(&self) -> FlagSupportObj<Flags>;
-}
+}*/
 
 /// An auto trait for checking enum support.
 ///
@@ -87,7 +87,7 @@ mod obj {
     };
 
     use super::*;
-
+    /*
     smallbox!(
         struct FlagSupportData<Rhs>: FlagSupport<Rhs>
     );
@@ -134,7 +134,7 @@ mod obj {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut *self.0
         }
-    }
+    }*/
 
     smallbox!(
         struct EnumSupportData: EnumSupport
@@ -211,11 +211,11 @@ mod obj {
     }
 }
 
-pub use obj::{FlagSupportObj, EnumSupportObj};
+pub use obj::EnumSupportObj;
 
 /// A structure used when selecting suitable [`physical devices`][1].
 ///
-/// This is used for enabling [`Device`] features and registering supported flags and enums.
+/// This is used for enabling [`Device`] features and registering supported enums.
 ///
 /// [1]: PhysicalDevice
 #[derive(Clone)]
@@ -390,8 +390,8 @@ pub(crate) struct FeatureEnableContext<'a> {
     query_ctx: &'a FeatureQueryContext,
     pub(crate) enable_vulkan_10_features: vk::PhysicalDeviceFeatures,
     pub(crate) supported_enums: HashMap<TypeId, HashSet<EnumSupportObj>>,
-    pub(crate) supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
-    pub(crate) supported_flags64: HashMap<TypeId, FlagSupportObj<Flags64>>,
+    //pub(crate) supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
+    //pub(crate) supported_flags64: HashMap<TypeId, FlagSupportObj<Flags64>>,
     enable_features: HashMap<TypeId, ExtendPhysicalDeviceFeatures2Obj>,
 }
 
@@ -402,8 +402,8 @@ impl<'a> FeatureEnableContext<'a> {
             query_ctx: ctx,
             enable_vulkan_10_features: vk::PhysicalDeviceFeatures::default(),
             supported_enums: HashMap::new(),
-            supported_flags32: HashMap::new(),
-            supported_flags64: HashMap::new(),
+            //supported_flags32: HashMap::new(),
+            //supported_flags64: HashMap::new(),
             enable_features: HashMap::new(),
         }
     }
@@ -415,7 +415,7 @@ impl<'a> FeatureEnableContext<'a> {
     ///
     /// [1]: EnumSupport
     #[inline]
-    pub unsafe fn add_supported_enums<T, I>(
+    pub fn add_supported_enums<T, I>(
         &mut self,
         enums: I,
     ) where
@@ -428,6 +428,7 @@ impl<'a> FeatureEnableContext<'a> {
         e.extend(enums.into_iter().map(|e| e.to_obj()));
     }
 
+    /*
     /// Adds supported 32-bit [`flags`][1].
     ///
     /// # Safety
@@ -435,7 +436,7 @@ impl<'a> FeatureEnableContext<'a> {
     ///
     /// [1]: FlagSupport
     #[inline]
-    pub unsafe fn add_supported_flags32<T>(
+    pub fn add_supported_flags32<T>(
         &mut self,
         flags: T,
     ) where T: FlagSupport<Flags32> + Copy {
@@ -452,7 +453,7 @@ impl<'a> FeatureEnableContext<'a> {
     ///
     /// [1]: FlagSupport
     #[inline]
-    pub unsafe fn add_supported_flags64<T>(
+    pub fn add_supported_flags64<T>(
         &mut self,
         flags: T,
     ) where T: FlagSupport<Flags64> + Copy {
@@ -460,7 +461,7 @@ impl<'a> FeatureEnableContext<'a> {
             .entry(flags.type_id())
             .and_modify(|f| f.add_flags(flags.as_raw()))
             .or_insert_with(|| FlagSupportObj::new(flags));
-    }
+    }*/
 
     /// This is used to edit/add a structure of type `E` to the p_next chain of
     /// [`vk::DeviceCreateInfo`].

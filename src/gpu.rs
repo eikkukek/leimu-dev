@@ -113,9 +113,13 @@ impl GpuInfo {
         index: &mut u32,
     ) -> Result<FeatureQueryContext, Error> {
         let mut maintenance4_properties = vk::PhysicalDeviceMaintenance4Properties::default();
+        let mut vk_11_properties = vk::PhysicalDeviceVulkan11Properties::default();
+        let mut depth_stenci_resolve_properties = vk::PhysicalDeviceDepthStencilResolveProperties::default();
         let mut properties = vk::PhysicalDeviceProperties2
             ::default()
-            .push_next(&mut maintenance4_properties);
+            .push_next(&mut maintenance4_properties)
+            .push_next(&mut vk_11_properties)
+            .push_next(&mut depth_stenci_resolve_properties);
         unsafe {
             instance.functions()
                 .get_physical_device_properties2(
@@ -162,8 +166,21 @@ impl GpuInfo {
                 api_version,
                 gpu_type,
                 limits: GpuLimits {
-                    max_buffer_size: maintenance4_properties.max_buffer_size,
                     vk_10: properties.limits,
+                    depth_stencil_resolve_limits: GpuDepthStencilResolveLimits {
+                        supported_depth_resolve_modes: ResolveModeFlags::from_bits_truncate(
+                            depth_stenci_resolve_properties
+                                .supported_depth_resolve_modes.as_raw(),
+                        ),
+                        supported_stencil_resolve_modes: ResolveModeFlags::from_bits_truncate(
+                            depth_stenci_resolve_properties
+                                .supported_stencil_resolve_modes.as_raw(),
+                        ),
+                        independent_resolve_none: depth_stenci_resolve_properties.independent_resolve_none != 0,
+                        independent_resolve: depth_stenci_resolve_properties.independent_resolve != 0,
+                    },
+                    max_buffer_size: maintenance4_properties.max_buffer_size,
+                    max_multiview_count: vk_11_properties.max_multiview_view_count,
                 },
                 queue_families: queue_family_properties
                     .into_iter()
@@ -180,7 +197,7 @@ impl GpuInfo {
             feature.query_support(&mut ctx)?;
         }
         *index += 1;
-        log::trace!("GPU `{}` is suitable", ctx.gpu_info().name);
+        log::info!("GPU `{}` is suitable", ctx.gpu_info().name);
         Ok(ctx)
     }
 }

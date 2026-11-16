@@ -97,7 +97,7 @@ impl Drop for Inner {
             .destroy_sampler(self.handle, None);
         }
         if let Some(label) = &self.attributes.label {
-            log::trace!("destroyed `Sampler` `{label}`");
+            log::info!("destroyed `Sampler` `{label}`");
         }
     }
 }
@@ -182,7 +182,7 @@ impl Sampler {
         }
         if anisotropy_enable &&
             device.get_feature(vk_10::sampler_anisotropy::NAME)
-                .is_none_or(|&e| !e)
+                .is_none()
         {
             Err(err!(
                 "`ANISOTROPY_ENABLE` bit is set but the `sampler_anisotropy` feature is not enabled",
@@ -212,7 +212,7 @@ impl Sampler {
         }
         if attributes.wrapping_mode.contains(&SamplerWrappingMode::MirrorClampToEdge) &&
             device.get_feature(vk_12::sampler_mirror_clamp_to_edge::NAME)
-                .is_none_or(|&e| !e)
+                .is_none()
         {
             Err(err!(
                 "`SamplerWrappingMode::MirrorClampToEdge` is used but the `sampler_mirror_clamp_to_edge` feature is not enabled",
@@ -239,7 +239,7 @@ impl Sampler {
             .create_sampler(&create_info, None)
         }.describe_err("Failed to create `VkSampler`")?;
         if let Some(label) = attributes.label {
-            log::trace!("created `Sampler` `{label}`");
+            log::info!("created `Sampler` `{label}`");
         }
         Ok(Self {
             inner: Inner {

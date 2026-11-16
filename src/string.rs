@@ -28,7 +28,7 @@ impl Stack {
 }
 
 #[derive(Clone)]
-pub enum Inner {
+enum Inner {
     Stack(Stack),
     Heap(Arc<str>),
 }

@@ -1,7 +1,6 @@
 use core::{
     fmt::{Display, self},
     hash::{Hash, self},
-    ffi::CStr,
 };
 
 /// A constant-evaulated pre-hashed name used by [`Attribute`]s, extensions and features.
@@ -36,14 +35,6 @@ impl ConstName {
         Self {
             name,
             hash,
-        }
-    }
-
-    /// Creates a new [`ConstName`] from a static [`CStr`] slice.
-    pub const fn from_c_str(name: &'static CStr) -> Self {
-        match name.to_str() {
-            Ok(name) => Self::new(name),
-            Err(_) => panic!("failed to convert to str")
         }
     }
 }

@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 
-use bytemuck::{CheckedBitPattern, NoUninit, ByteEq, ByteHash};
+use bytemuck::{Zeroable, NoUninit, ByteEq, ByteHash};
 
 use tuhka::vk;
 
@@ -14,18 +14,18 @@ pub type Flags64 = u64;
 bitflags! {
     /// Bitmask that controls triangle culling.
     #[repr(transparent)]
-    #[derive(Default, Clone, Copy, CheckedBitPattern, ByteEq, ByteHash, Debug)]
+    #[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash, Debug)]
     pub struct CullMode: Flags32 {
         /// Specifies that no triangles are discarded.
-        const NONE = vk::CullModeFlags::NONE.as_raw();
+        const NONE = 0x0;
         /// Specifies that the front-facing triangles are discarded.
-        const FRONT = vk::CullModeFlags::FRONT.as_raw();
+        const FRONT = 0x1;
         /// Specifies that the back-facing triangles are discarded.
-        const BACK = vk::CullModeFlags::BACK.as_raw();
+        const BACK = 0x2;
         /// Specifies that the all triangles are discarded.
         ///
         /// Equal to [`Self::all()`].
-        const FRONT_AND_BACK = vk::CullModeFlags::FRONT_AND_BACK.as_raw();
+        const FRONT_AND_BACK = 0x1 | 0x2;
     }
 }
 unsafe impl NoUninit for CullMode {}
@@ -43,10 +43,12 @@ bitflags! {
 
     /// Bitmask of buffer usages.
     ///
-    /// If this bitmask contains bits that don't fit in a 32-bit range, the `maintenance5` feature
-    /// **must** be enabled (either explicitly or implicilty).
+    /// If this bitmask contains bits that don't fit in a 32-bit range, the [`maintenance5`][1] feature
+    /// **must** be enabled.
+    ///
+    /// [1]: vk_14::maintenance5
     #[repr(transparent)]
-    #[derive(Clone, Copy, CheckedBitPattern, ByteEq, ByteHash, Debug)]
+    #[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
     pub struct BufferUsages: Flags64 {
         /// Specifies that the buffer **can** be used as the source of a transfer command.
         const TRANSFER_SRC = vk::BufferUsageFlags2::TRANSFER_SRC.as_raw();
@@ -80,7 +82,6 @@ bitflags! {
 }
 unsafe impl NoUninit for BufferUsages {}
 __bitflags_display!(BufferUsages);
-
 impl BufferUsages {
 
     /// Gets the bits of self as [`u32`].
@@ -98,75 +99,100 @@ impl BufferUsages {
         self.bits()
     }
 }
-
 bitflags! {
 
     /// Specifies what an image **can** be used for.
     #[repr(transparent)]
-    #[derive(Clone, Copy, CheckedBitPattern, ByteEq, ByteHash, Debug)]
+    #[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
     pub struct ImageUsages: Flags32 {
         /// Specifies that the image **can** be used as the source of a transfer command.
-        const TRANSFER_SRC = vk::ImageUsageFlags::TRANSFER_SRC.as_raw();
+        const TRANSFER_SRC = 0x1;
         /// Specifies that the image **can** be used as the destination of a transfer command.
-        const TRANSFER_DST = vk::ImageUsageFlags::TRANSFER_DST.as_raw();
+        const TRANSFER_DST = 0x2;
         /// Specifies that the image **can** be used with desciptor types [`SampledImage`][1] and
         /// [`ImageSampler`][2].
         ///
         /// [1]: DescriptorType::SampledImage
         /// [2]: DescriptorType::ImageSampler
-        const SAMPLED = vk::ImageUsageFlags::SAMPLED.as_raw();
+        const SAMPLED = 0x4;
         /// Specifies that the image **can** be used with descriptor type [`StorageImage`][1].
         ///
         /// [1]: DescriptorType::StorageImage
-        const STORAGE = vk::ImageUsageFlags::STORAGE.as_raw();
+        const STORAGE = 0x8;
         /// Specifies that the image **can** be used as a color attachment.
-        const COLOR_ATTACHMENT  = vk::ImageUsageFlags::COLOR_ATTACHMENT.as_raw();
+        const COLOR_ATTACHMENT = 0x10;
         /// Specifies that the image **can** be used as a depth/stencil attachment.
-        const DEPTH_STENCIL_ATTACHMENT = vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT.as_raw();
+        const DEPTH_STENCIL_ATTACHMENT = 0x20;
+
+        /* unsupported for now
         /// Specifies that the image **may** be backed by lazily allocated memory.
-        const TRANSIENT_ATTACHMENT    = vk::ImageUsageFlags::TRANSIENT_ATTACHMENT.as_raw();
+        const TRANSIENT_ATTACHMENT = 0x40;
+        */
+
+        /* no supported for now
         /// Specifies that the image **can** be used with descriptor type [`InputAttachment`][1].
         ///
         /// [1]: DescriptorType::InputAttachment
-        const INPUT_ATTACHMENT = vk::ImageUsageFlags::INPUT_ATTACHMENT.as_raw();
+        // const INPUT_ATTACHMENT = vk::ImageUsageFlags::INPUT_ATTACHMENT.as_raw();
+        */
+
+        /* not supported for now
         /// Specifies that the image **can** be used with host copy commands and host layout
         /// transitions.
         ///
         /// Requires enabling the [`host_image_copy`][vk_core::host_image_copy] feature.
         const HOST_TRANSFER = vk::ImageUsageFlags::HOST_TRANSFER.as_raw();
+        */
     }
 }
 unsafe impl NoUninit for ImageUsages {}
 __bitflags_display!(ImageUsages);
-
+impl From<ImageUsages> for vk::ImageUsageFlags {
+    #[inline]
+    fn from(value: ImageUsages) -> Self {
+        Self::from_raw(value.bits())
+    }
+}
 bitflags! {
-
     /// Specifies supported image sample counts.
     #[repr(transparent)]
-    #[derive(Clone, Copy, CheckedBitPattern, ByteEq, ByteHash, Debug)]
+    #[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
     pub struct SampleCounts: Flags32 {
         /// 1 sample per pixel.
-        const BIT_1  = 0x1;
+        const X1  = 0x1;
         /// 2 samples per pixel.
-        const BIT_2  = 0x2;
+        const X2  = 0x2;
         /// 4 samples per pixel.
-        const BIT_4  = 0x4;
+        const X4  = 0x4;
         /// 8 samples per pixel.
-        const BIT_8  = 0x8;
+        const X8  = 0x8;
         /// 16 samples per pixel.
-        const BIT_16 = 0x10;
+        const X16 = 0x10;
         /// 32 samples per pixel.
-        const BIT_32 = 0x20;
+        const X32 = 0x20;
         /// 64 samples per pixel.
-        const BIT_64 = 0x40;
+        const X64 = 0x40;
     }
 }
 unsafe impl NoUninit for SampleCounts {}
 __bitflags_display!(SampleCounts);
 bitflags! {
+    /// Specifies supported resolve modes.
+    #[repr(transparent)]
+    #[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
+    pub struct ResolveModeFlags: Flags32 {
+        const SAMPLE_ZERO   = 0x1;
+        const AVERAGE       = 0x2;
+        const MIN           = 0x4;
+        const MAX           = 0x8;
+    }
+}
+unsafe impl NoUninit for ResolveModeFlags {}
+__bitflags_display!(ResolveModeFlags);
+bitflags! {
     /// Specifies color components to write to the framebuffer.
     #[repr(transparent)]
-    #[derive(Clone, Copy, CheckedBitPattern, ByteEq, ByteHash, Debug)]
+    #[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
     pub struct ColorComponents: Flags32 {
         /// Specifies that the `R` component is written to the color attachment.
         const R = 0x1;
@@ -187,3 +213,43 @@ impl ColorComponents {
 }
 unsafe impl NoUninit for ColorComponents {}
 __bitflags_display!(ColorComponents);
+bitflags! {
+    /// A bitmask specifying [`Image`] aspects.
+    #[repr(transparent)]
+    #[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash, Debug)]
+    pub struct ImageAspects: Flags32 {
+        /// Specifies all available aspects of an image.
+        ///
+        /// This is equal to [`Self::empty()`] and is the default value.
+        const DERIVE = 0x0;
+        /// Specifies the color aspect of an image.
+        const COLOR   = 0x1;
+        /// Specifies the depth aspect of an image.
+        const DEPTH   = 0x2;
+        /// Specifies the stencil aspect of an image.
+        const STENCIL = 0x4;
+    }
+}
+unsafe impl NoUninit for ImageAspects {}
+__bitflags_display!(ImageAspects);
+bitflags! {
+    /// A bitmask of supported alpha composite modes.
+    pub struct CompositeAlphaFlags: Flags32 {
+        /// Specifies that the alpha component is ignored and the image is treated as if it has a
+        /// constantt alpha of `1.0`.
+        const OPAQUE = 0x1;
+        /// Specifies that non-alpha components of the image are expected to already be multiplied by the alpha
+        /// component by the application.
+        const PRE_MULTIPLIED = 0x2;
+        /// Specifies that non-alpha components of the image are not expected to already be multiplied by the
+        /// alpha component by the application; instead, the compositor will multiply the non-alpha
+        /// components of the image by the alpha component during compositing.
+        const POST_MULTIPLIED = 0x4;
+        /// The way in which the presentation engine treats the alpha component in the images is
+        /// unknown to the Vulkan API. Instead, the application is responsible for setting the
+        /// composite alpha blending mode using native window system commands. If the application
+        /// does not set the blending mode using native window system commands, then a
+        /// platform-specific default will be use.
+        const INHERIT = 0x8;
+    }
+}

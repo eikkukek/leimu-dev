@@ -67,6 +67,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "equivalent"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826"
+
+[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -79,6 +85,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "indexmap"
+version = "2.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
+dependencies = [
+ "equivalent",
+ "hashbrown",
+]
+
+[[package]]
 name = "leimu"
 version = "0.1.0"
 dependencies = [
@@ -86,6 +108,7 @@ dependencies = [
  "arrayvec",
  "bitflags",
  "bytemuck",
+ "indexmap",
  "leimu-mem",
  "leimu-spirv",
  "log",
@@ -94,14 +117,15 @@ dependencies = [
  "portable-atomic-util",
  "raw-window-handle",
  "smallvec",
+ "static_assertions",
  "tuhka",
 ]
 
 [[package]]
 name = "leimu-mem"
-version = "0.4.2"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f5ba56607e21f120410f7201efa9b19ad01b46e7e832b4df4775c7a8d00f2ca"
+checksum = "2d31823fed50077d8be3b21c649f6b5bfe5937f623f7c7142af50feb4cc71917"
 dependencies = [
  "portable-atomic",
 ]
@@ -311,6 +335,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "149309498a5f7334b12ddae0cad8aba81ce785fe91755068867e017cf98fee46"
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -334,9 +364,9 @@ dependencies = [
 
 [[package]]
 name = "tuhka"
-version = "0.1.11"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29e80ff3355c3c47ea62527fc695454caf8bcd9688f31568c8c6aa3b4754aab9"
+checksum = "89b70dde213297e669833b80f104b8402d2cc6dc1c04af2324400e213591cb20"
 dependencies = [
  "bytemuck",
  "libloading",

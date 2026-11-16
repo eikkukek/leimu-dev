@@ -4,9 +4,10 @@ use std::io::Write;
 use quote::quote;
 use syn::Ident;
 use proc_macro2::Span;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 
 const VK_FORMATS: &str = "
+// Specifies that the format is not specified.
 [undefined]
 VK_FORMAT_UNDEFINED = 0,
 [8-bit]
@@ -377,106 +378,174 @@ VK_FORMAT_ASTC_12x10_SRGB_BLOCK = 182,
 VK_FORMAT_ASTC_12x12_UNORM_BLOCK = 183,
 [ASTC_12x12]
 VK_FORMAT_ASTC_12x12_SRGB_BLOCK = 184,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [32-bit G8B8G8R8]
 VK_FORMAT_G8B8G8R8_422_UNORM = 1000156000,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [32-bit B8G8R8G8]
 VK_FORMAT_B8G8R8G8_422_UNORM = 1000156001,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [8-bit 3-plane 420]
 VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM = 1000156002,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [8-bit 2-plane 420]
 VK_FORMAT_G8_B8R8_2PLANE_420_UNORM = 1000156003,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [8-bit 3-plane 422]
 VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM = 1000156004,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [8-bit 2-plane 422]
 VK_FORMAT_G8_B8R8_2PLANE_422_UNORM = 1000156005,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [8-bit 3-plane 444]
 VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM = 1000156006,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit]
 VK_FORMAT_R10X6_UNORM_PACK16 = 1000156007,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [32-bit]
 VK_FORMAT_R10X6G10X6_UNORM_2PACK16 = 1000156008,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit R10G10B10A10]
 VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16 = 1000156009,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit G10B10G10R10]
 VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16 = 1000156010,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit B10G10R10G10]
 VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16 = 1000156011,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [10-bit 3-plane 420]
 VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16 = 1000156012,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [10-bit 2-plane 420]
 VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16 = 1000156013,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [10-bit 3-plane 422]
 VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16 = 1000156014,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [10-bit 2-plane 422]
 VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16 = 1000156015,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [10-bit 3-plane 444]
 VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16 = 1000156016,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit]
 VK_FORMAT_R12X4_UNORM_PACK16 = 1000156017,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [32-bit]
 VK_FORMAT_R12X4G12X4_UNORM_2PACK16 = 1000156018,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit R12G12B12A12]
 VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16 = 1000156019,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion_1
 [64-bit G12B12G12R12]
 VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16 = 1000156020,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit B12G12R12G12]
 VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16 = 1000156021,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [12-bit 3-plane 420]
 VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16 = 1000156022,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [12-bit 2-plane 420]
 VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16 = 1000156023,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [12-bit 3-plane 422]
 VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16 = 1000156024,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [12-bit 2-plane 422]
 VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16 = 1000156025,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [12-bit 3-plane 444]
 VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16 = 1000156026,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit G16B16G16R16]
 VK_FORMAT_G16B16G16R16_422_UNORM = 1000156027,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [64-bit B16G16R16G16]
 VK_FORMAT_B16G16R16G16_422_UNORM = 1000156028,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit 3-plane 420]
 VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM = 1000156029,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit 2-plane 420]
 VK_FORMAT_G16_B16R16_2PLANE_420_UNORM = 1000156030,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit 3-plane 422]
 VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM = 1000156031,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit 2-plane 422]
 VK_FORMAT_G16_B16R16_2PLANE_422_UNORM = 1000156032,
-// Provided by VK_VERSION_1_1
+// Requires enabling the [`sampler_ycbcr_conversion`][1] feature.
+//
+// [1]: crate::vk_11::sampler_ycbcr_conversion
 [16-bit 3-plane 444]
 VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM = 1000156033,
 // Provided by VK_VERSION_1_3
@@ -491,10 +560,14 @@ VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16 = 1000330002,
 // Provided by VK_VERSION_1_3
 [16-bit 2-plane 444]
 VK_FORMAT_G16_B16R16_2PLANE_444_UNORM = 1000330003,
-// Provided by VK_VERSION_1_3
+// Requires enabling the [`_4444_formats`][1] feature.
+//
+// [1]: crate::vk_13::_4444_formats
 [16-bit]
 VK_FORMAT_A4R4G4B4_UNORM_PACK16 = 1000340000,
-// Provided by VK_VERSION_1_3
+// Requires enabling the [`_4444_formats`][1] feature.
+//
+// [1]: crate::vk_13::_4444_formats
 [16-bit]
 VK_FORMAT_A4B4G4R4_UNORM_PACK16 = 1000340001,
 // Provided by VK_VERSION_1_3
@@ -539,10 +612,14 @@ VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK = 1000066012,
 // Provided by VK_VERSION_1_3
 [ASTC_12x12]
 VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK = 1000066013,
-// Provided by VK_VERSION_1_4
+// Requires enabling the [`maintenance5`][1] feature.
+//
+// [1]: vk_14::maintenance5
 [16-bit]
 VK_FORMAT_A1B5G5R5_UNORM_PACK16 = 1000470000,
-// Provided by VK_VERSION_1_4
+// Requires enabling the [`maintenance5`][1] feature.
+//
+// [1]: vk_14::maintenance5
 [8-bit alpha]
 VK_FORMAT_A8_UNORM = 1000470001,
 // Provided by VK_IMG_format_pvrtc
@@ -716,121 +793,6 @@ VK_FORMAT_G14X2_B14X2R14X2_2PLANE_420_UNORM_3PACK16_ARM = 1000609012,
 // Provided by VK_ARM_format_pack
 [14-bit 2-plane 422]
 VK_FORMAT_G14X2_B14X2R14X2_2PLANE_422_UNORM_3PACK16_ARM = 1000609013,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK,
-// Provided by VK_EXT_texture_compression_astc_hdr
-VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT = VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G8B8G8R8_422_UNORM_KHR = VK_FORMAT_G8B8G8R8_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_B8G8R8G8_422_UNORM_KHR = VK_FORMAT_B8G8R8G8_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM_KHR = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G8_B8R8_2PLANE_420_UNORM_KHR = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM_KHR = VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G8_B8R8_2PLANE_422_UNORM_KHR = VK_FORMAT_G8_B8R8_2PLANE_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM_KHR = VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_R10X6_UNORM_PACK16_KHR = VK_FORMAT_R10X6_UNORM_PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_R10X6G10X6_UNORM_2PACK16_KHR = VK_FORMAT_R10X6G10X6_UNORM_2PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16_KHR = VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16_KHR = VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16_KHR = VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16_KHR = VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_R12X4_UNORM_PACK16_KHR = VK_FORMAT_R12X4_UNORM_PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_R12X4G12X4_UNORM_2PACK16_KHR = VK_FORMAT_R12X4G12X4_UNORM_2PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16_KHR = VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16_KHR = VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16_KHR = VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16_KHR = VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G16B16G16R16_422_UNORM_KHR = VK_FORMAT_G16B16G16R16_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_B16G16R16G16_422_UNORM_KHR = VK_FORMAT_B16G16R16G16_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM_KHR = VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G16_B16R16_2PLANE_420_UNORM_KHR = VK_FORMAT_G16_B16R16_2PLANE_420_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM_KHR = VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G16_B16R16_2PLANE_422_UNORM_KHR = VK_FORMAT_G16_B16R16_2PLANE_422_UNORM,
-// Provided by VK_KHR_sampler_ycbcr_conversion
-VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM_KHR = VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM,
-// Provided by VK_EXT_ycbcr_2plane_444_formats
-VK_FORMAT_G8_B8R8_2PLANE_444_UNORM_EXT = VK_FORMAT_G8_B8R8_2PLANE_444_UNORM,
-// Provided by VK_EXT_ycbcr_2plane_444_formats
-VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16_EXT = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16,
-// Provided by VK_EXT_ycbcr_2plane_444_formats
-VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16_EXT = VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16,
-// Provided by VK_EXT_ycbcr_2plane_444_formats
-VK_FORMAT_G16_B16R16_2PLANE_444_UNORM_EXT = VK_FORMAT_G16_B16R16_2PLANE_444_UNORM,
-// Provided by VK_EXT_4444_formats
-VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT = VK_FORMAT_A4R4G4B4_UNORM_PACK16,
-// Provided by VK_EXT_4444_formats
-VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT = VK_FORMAT_A4B4G4R4_UNORM_PACK16,
-// Provided by VK_NV_optical_flow
-// VK_FORMAT_R16G16_S10_5_NV is a legacy alias
-VK_FORMAT_R16G16_S10_5_NV = VK_FORMAT_R16G16_SFIXED5_NV,
-// Provided by VK_KHR_maintenance5
-VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR = VK_FORMAT_A1B5G5R5_UNORM_PACK16,
-// Provided by VK_KHR_maintenance5
-VK_FORMAT_A8_UNORM_KHR = VK_FORMAT_A8_UNORM,
 ";
 #[derive(Clone, Copy)]
 struct Class {
@@ -839,7 +801,83 @@ struct Class {
     texels_per_block: u8,
 }
 
+impl Class {
+
+    fn docs(&self, docs: &mut Vec<proc_macro2::TokenStream>) {
+        let texel_block_size
+            = format!("- Texel block size `{}`", self.texel_block_size);
+        let texel_block_extent
+            = format!("- Texel block extent `({}, {}, {})`",
+                self.texel_block_extent.0,
+                self.texel_block_extent.1,
+                self.texel_block_extent.2,
+            );
+        let texels_per_block
+            = format!("- Texels per block `{}`", self.texels_per_block);
+        docs.push(quote! {
+            #[doc = #texel_block_size]
+            #[doc = #texel_block_extent]
+            #[doc = #texels_per_block]
+        });
+    }
+}
+
 fn main() -> std::io::Result<()> {
+    let skip: IndexSet<&str> = [
+        // Skip VK_EXT_texture_compression_astc_hdr due to poor availability on windows/linux.
+        "ASTC_10x10_SFLOAT_BLOCK",
+        "ASTC_10x5_SFLOAT_BLOCK",
+        "ASTC_10x6_SFLOAT_BLOCK",
+        "ASTC_10x8_SFLOAT_BLOCK",
+        "ASTC_12x10_SFLOAT_BLOCK",
+        "ASTC_12x12_SFLOAT_BLOCK",
+        "ASTC_4x4_SFLOAT_BLOCK",
+        "ASTC_5x4_SFLOAT_BLOCK",
+        "ASTC_5x5_SFLOAT_BLOCK",
+        "ASTC_6x5_SFLOAT_BLOCK",
+        "ASTC_6x6_SFLOAT_BLOCK",
+        "ASTC_8x5_SFLOAT_BLOCK",
+        "ASTC_8x6_SFLOAT_BLOCK",
+        "ASTC_8x8_SFLOAT_BLOCK",
+    ].into_iter().collect();
+    let is_ycbcr: IndexSet<&str> = [
+        "G8B8G8R8_422_UNORM",
+        "B8G8R8G8_422_UNORM",
+        "G8_B8_R8_3PLANE_420_UNORM",
+        "G8_B8R8_2PLANE_420_UNORM",
+        "G8_B8_R8_3PLANE_422_UNORM",
+        "G8_B8R8_2PLANE_422_UNORM",
+        "G8_B8_R8_3PLANE_444_UNORM",
+        "R10X6G10X6B10X6A10X6_UNORM_4PACK16",
+        "G10X6B10X6G10X6R10X6_422_UNORM_4PACK16",
+        "B10X6G10X6R10X6G10X6_422_UNORM_4PACK16",
+        "G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16",
+        "G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16",
+        "G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16",
+        "G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16",
+        "G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16",
+        "R12X4G12X4B12X4A12X4_UNORM_4PACK16",
+        "G12X4B12X4G12X4R12X4_422_UNORM_4PACK16",
+        "B12X4G12X4R12X4G12X4_422_UNORM_4PACK16",
+        "G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16",
+        "G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16",
+        "G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16",
+        "G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16",
+        "G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16",
+        "G16B16G16R16_422_UNORM",
+        "B16G16R16G16_422_UNORM",
+        "G16_B16_R16_3PLANE_420_UNORM",
+        "G16_B16R16_2PLANE_420_UNORM",
+        "G16_B16_R16_3PLANE_422_UNORM",
+        "G16_B16R16_2PLANE_422_UNORM",
+        "G16_B16_R16_3PLANE_444_UNORM",
+        "G8_B8R8_2PLANE_444_UNORM",
+        "G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16",
+        "G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16",
+        "G16_B16R16_2PLANE_444_UNORM",
+        "G14X2_B14X2R14X2_2PLANE_420_UNORM_3PACK16_ARM",
+        "G14X2_B14X2R14X2_2PLANE_422_UNORM_3PACK16_ARM",
+    ].into_iter().collect();
     let classes: IndexMap<&str, (u32, Class)> = [
         ("undefined",
             Class {
@@ -1613,7 +1651,7 @@ fn main() -> std::io::Result<()> {
         class: &'a str,
         name: String,
         value: &'a str,
-        doc: Option<&'a str>,
+        doc: Vec<&'a str>,
         is_compressed: bool,
         index: Option<usize>,
         numeric_color: Option<&'static str>,
@@ -1621,17 +1659,25 @@ fn main() -> std::io::Result<()> {
         numeric_stencil: Option<&'static str>,
     }
     let mut all_formats = vec![];
-    let formats: Vec<_> = 
-        VK_FORMATS.split(",")
-            .map(|str| str.trim_start_matches("\n").replace("\n", ","))
-            .collect();
+    let mut formats = Vec::new();
+    let mut lines = VK_FORMATS.lines();
+    while let Some(mut line) = lines.next() {
+        let mut format = String::new();
+        while !line.starts_with("VK_FORMAT") {
+            format += line;
+            format += "$";
+            line = lines.next().unwrap();
+        }
+        format += line.trim_end_matches(',');
+        formats.push(format);
+    }
     for format in &formats {
-        let mut doc = None;
+        let mut doc = Vec::new();
         let mut name_and_value = None;
         let mut class = None;
-        for sub in format.split(",") {
+        for sub in format.split("$") {
             if sub.starts_with("//") {
-                doc = Some(sub.trim_start_matches("//").trim());
+                doc.push(sub.trim_start_matches("//").trim());
             } else if sub.starts_with("VK_FORMAT_") {
                 let sub = sub.trim_start_matches("VK_FORMAT_");
                 if !sub.contains("VK_FORMAT_") {
@@ -1650,9 +1696,24 @@ fn main() -> std::io::Result<()> {
         let Some((name, value)) = name_and_value else {
             continue
         };
+        if skip.contains(name) {
+            continue
+        }
+        let is_ycbcr = is_ycbcr.contains(name);
+        // Skip ycbcr for now.
+        if is_ycbcr || doc.first().is_some_and(|s|
+            s.starts_with("Requires enabling the [`sampler_ycbcr") ||
+            s.contains("ARM") ||
+            s.starts_with("Provided by VK_EXT_texture_compression_astc_3d") ||
+            s.starts_with("Provided by VK_IMG") ||
+            s.starts_with("Provided by VK_NV")
+        ){
+            continue
+        }
         let [mut color, mut depth, mut stencil] = [None; 3];
         if name.contains("D16_UNORM") || name.contains("D24_UNORM") {
             depth = Some("Unorm");
+        } else if name.contains("S8_UINT") {
         } else if name.contains("D32_SFLOAT") {
             depth = Some("Sfloat");
         } else if name.contains("UNORM") {
@@ -1747,8 +1808,9 @@ fn main() -> std::io::Result<()> {
     let header = quote! {
         //! This file is auto-generated, do not modify manually.
 
-        /// An enumeration of numeric format types.
         use bytemuck::{NoUninit, Zeroable, CheckedBitPattern, ByteHash, ByteEq};
+
+        /// An enumeration of numeric format types.
         #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         pub enum NumericFormat {
             /// Components are unsigned normalized values in the range `0.0..=1.0`.
@@ -1849,6 +1911,7 @@ fn main() -> std::io::Result<()> {
             texel_block_size: u64,
             texel_block_extent: (u32, u32, u32),
             texels_per_block: u8,
+            is_alpha_format: bool,
         }
 
         impl FormatCompatibility {
@@ -1874,9 +1937,13 @@ fn main() -> std::io::Result<()> {
             }
 
             /// Returns whether `self` is size-compatible with `other`.
+            ///
+            /// Returns `true` is neither or both are alpha formats and if the sizes of their texel
+            /// blocks are equal.
             #[inline]
-            pub const fn is_size_compatible(&self, other: &Self) -> bool {
-                self.texel_block_size == other.texel_block_size
+            pub const fn is_size_compatible_with(&self, other: &Self) -> bool {
+                self.texel_block_size == other.texel_block_size &&
+                !(self.is_alpha_format ^ other.is_alpha_format)
             }
         }
 
@@ -1913,6 +1980,7 @@ fn main() -> std::io::Result<()> {
             pub numeric_depth: Option<NumericFormat>,
             pub numeric_stencil: Option<NumericFormat>,
             pub is_compressed: bool,
+            //pub is_ycbcr: bool,
         }
     };
     write!(file, "{header}")?;
@@ -1922,6 +1990,7 @@ fn main() -> std::io::Result<()> {
             = class;
         let (a, b, c) = texel_block_extent;
         assert!(static_classes.len() == *idx as usize);
+        let is_alpha_format = name.contains("alpha");
         static_classes.push(
             quote! {
                 FormatCompatibility {
@@ -1930,6 +1999,7 @@ fn main() -> std::io::Result<()> {
                     texel_block_size: #texel_block_size,
                     texel_block_extent: (#a, #b, #c),
                     texels_per_block: #texels_per_block,
+                    is_alpha_format: #is_alpha_format,
                 }
             }
         );
@@ -1983,8 +2053,12 @@ fn main() -> std::io::Result<()> {
                 }
             };
         let class = format.class;
-        let class_idx = classes.get(class).unwrap().0 as usize;
+        let &(class_idx, format_class) = classes.get(class).unwrap();
+        let class_idx = class_idx as usize;
         let is_compressed = format.is_compressed;
+        let mut docs: Vec<_> = format.doc.iter().map(|doc| quote! {
+            #[doc = #doc]
+        }).collect();
         if format.value.len() == 10 { 
             let value: i32 = str::parse(format.value).unwrap();
             let u = value as usize;
@@ -2003,18 +2077,20 @@ fn main() -> std::io::Result<()> {
                     numeric_depth: #numeric_depth,
                     numeric_stencil: #numeric_stencil,
                     is_compressed: #is_compressed,
+                    //is_ycbcr: #is_ycbcr,
                 })
             });
         } else {
             core_infos[index] = Some(quote! {
-                Some(FormatInfo {
+                FormatInfo {
                     name: #name,
                     compatibility: &COMPATIBILITY[#class_idx],
                     numeric_color: #numeric_color,
                     numeric_depth: #numeric_depth,
                     numeric_stencil: #numeric_stencil,
                     is_compressed: #is_compressed,
-                })
+                    //is_ycbcr: #is_ycbcr,
+                }
             });
         }
         let name = Ident::new(name, Span::call_site());
@@ -2024,11 +2100,42 @@ fn main() -> std::io::Result<()> {
             plane2_formats.push(name.clone());
         }
         let value: i32 = str::parse(format.value).unwrap();
-        let doc = format.doc.map(|doc| quote! {
-            #[doc = #doc]
+        docs.push(quote! { #[doc = "# Format information"] });
+        let mut format_class_doc = format!("- Class: `{class}`");
+        if is_compressed {
+            format_class_doc += " (compressed)";
+        } else {
+            format_class_doc += " (uncompressed)";
+        }
+        docs.push(quote! { #[doc = #format_class_doc] });
+        let mut aspects = None;
+        if format.numeric_color.is_some() {
+            aspects = Some("COLOR".to_string());
+        }
+        if format.numeric_depth.is_some() {
+            if let Some(aspects) = &mut aspects {
+                *aspects += " | DEPTH";
+            } else {
+                aspects = Some("DEPTH".to_string())
+            }
+        }
+        if format.numeric_stencil.is_some() {
+            if let Some(aspects) = &mut aspects {
+                *aspects += " | STENCIL";
+            } else {
+                aspects = Some("STENCIL".to_string())
+            }
+        }
+        let aspects = format!("- Aspects: `{}`", aspects
+            .as_deref()
+            .unwrap_or("`NONE`")
+        );
+        docs.push(quote! {
+            #[doc = #aspects]
         });
+        format_class.docs(&mut docs);
         format_variants.push(quote! {
-            #doc
+            #(#docs)*
             #name = #value
         });
     }
@@ -2052,7 +2159,7 @@ fn main() -> std::io::Result<()> {
 
             pub(super) const fn info(self) -> &'static FormatInfo {
                 let raw = self as usize;
-                if raw > #max_core {
+                if raw >= #max_core {
                     let mut offset = raw % 10;
                     let div = raw / 10;
                     offset += div % 10 * 10 + (div == 10) as usize * 10;
@@ -2063,15 +2170,40 @@ fn main() -> std::io::Result<()> {
                     EXT_INFOS[index]
                         .as_ref().unwrap()
                 } else {
-                    CORE_INFOS[raw]
-                        .as_ref().unwrap()
+                    &CORE_INFOS[raw]
                 }
+            }
+       
+            /// Returns whether using this format doesn't require enabling any
+            /// features.
+            #[inline]
+            pub const fn is_builtin(self) -> bool {
+                (self as usize) < #max_core
             }
 
             /// Returns [`FormatCompatibility`] of this format.
             #[inline]
             pub const fn compatibility(self) -> &'static FormatCompatibility {
                 self.info().compatibility
+            }
+
+            /// Returns whether `self` is compatible with `other`.
+            ///
+            /// Returns `true` if their [compatibility] values are equal.
+            ///
+            /// [compatibility]: Self::compatibility
+            #[inline]
+            pub const fn is_compatible_with(self, other: Self) -> bool {
+                self.compatibility().num == other.compatibility().num
+            }
+
+            /// Returns whether `self` is size-compatible with `other`.
+            ///
+            /// Returns `true` is neither or both are alpha formats and if the sizes of their texel
+            /// blocks are equal.
+            #[inline]
+            pub const fn is_size_compatible_with(self, other: Self) -> bool {
+                self.compatibility().is_size_compatible_with(other.compatibility())
             }
 
             /// Converts `self` to `str`.
@@ -2107,6 +2239,12 @@ fn main() -> std::io::Result<()> {
                 self.info().is_compressed
             }
 
+            /* ycbcrnot supported for now
+            #[inline]
+            pub const fn is_ycbcr(&self) -> bool {
+                self.info().is_ycbcr
+            }
+
             /// Returns the number of planes in the format.
             ///
             /// The returned count is in the range 1..=3.
@@ -2123,7 +2261,7 @@ fn main() -> std::io::Result<()> {
                 } else {
                     1
                 }
-            }
+            }*/
 
             /// Returns whether the format is a depth/stencil format.
             #[inline]
@@ -2144,7 +2282,7 @@ fn main() -> std::io::Result<()> {
     let core_infos = core_infos
         .into_iter()
         .map(|info| {
-            info.unwrap_or_else(|| quote! { None })
+            info.unwrap()
         });
     let ext_infos = ext_infos
         .into_iter()
@@ -2152,7 +2290,7 @@ fn main() -> std::io::Result<()> {
             info.unwrap_or_else(|| quote! { None })
         });
     let tables = quote! {
-        static CORE_INFOS: [Option<FormatInfo>; #max_core] = [
+        static CORE_INFOS: [FormatInfo; #max_core] = [
             #(#core_infos,)*
         ];
         static EXT_INFOS: [Option<FormatInfo>; #max_ext] = [

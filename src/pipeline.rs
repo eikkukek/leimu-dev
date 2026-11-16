@@ -17,17 +17,14 @@ impl PipelineStateContextDynamic<'_> {
     }
 }
 
+#[allow(unused)]
 pub(crate) enum PipelineStateContextInner<'a> {
     Dynamic(PipelineStateContextDynamic<'a>),
     Static(),
 }
 
+#[allow(unused)]
 impl<'a> PipelineStateContextInner<'a> {
-
-    #[inline]
-    pub(crate) fn is_dynamic(&self) -> bool {
-        matches!(self, Self::Dynamic(_))
-    }
 
     #[inline]
     pub(crate) fn is_dynamic_and(&self, f: impl Fn(&PipelineStateContextDynamic) -> bool) -> bool {
@@ -99,8 +96,8 @@ pub trait PipelineStateObject: Default {
     unsafe fn cmd_set_dynamic(
         &self,
         device: &Device,
-        command_buffer: CommandBuffer<'_>,
-        allocator: &AnyAlloc,
+        command_buffer: CommandBuffer,
+        allocator: &AnyAllocator,
     );
 }
 
@@ -200,8 +197,8 @@ macro_rules! enable_state {
                 unsafe fn cmd_set_dynamic(
                     &self,
                     device: &Device,
-                    command_buffer: CommandBuffer<'_>,
-                    _allocator: &AnyAlloc,
+                    command_buffer: CommandBuffer,
+                    _allocator: &AnyAllocator,
                 )
                 {
                     unsafe {
@@ -237,7 +234,7 @@ pub mod pipeline_state {
 
     use bytemuck::{NoUninit, ByteEq, ByteHash};
 
-    use crate::mem::{iter::CollectIn, int::NonZeroInteger, alloc_vec::FixedVec32};
+    use crate::mem::{iter::CollectIn, size::NonZeroSize, alloc_vec::FixedVec32};
 
     use tuhka::vk::{StencilFaceFlags, SampleCountFlags};
 
@@ -265,7 +262,7 @@ pub mod pipeline_state {
             }
             if self.line_width != 1.0 &&
                 device.get_feature(vk_10::wide_lines::NAME)
-                    .is_none_or(|&e| !e)
+                    .is_none()
             {
                 Err(err!(
                     "`line_width` is not `1.0` but the `wide_lines` feature is not enabled"
@@ -277,8 +274,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -325,7 +322,7 @@ pub mod pipeline_state {
             }
             if self.clamp != 0.0 &&
                 device.get_feature(vk_10::depth_bias_clamp::NAME)
-                    .is_none_or(|&e| e)
+                    .is_none()
             {
                 Err(err!(
                     "`clamp` is not `0.0` and the `depth_bias_clamp` feature is not enabled"
@@ -337,8 +334,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -377,8 +374,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -434,8 +431,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -481,8 +478,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             if self.front == self.back &&
@@ -551,8 +548,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             if self.front == self.back &&
@@ -621,8 +618,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             if self.front == self.back &&
@@ -672,7 +669,7 @@ pub mod pipeline_state {
             }
             let unknown_bits = self.difference(CullMode::all());
             if !unknown_bits.is_empty() {
-                Err(err!("unknown cull mode bits `{unknown_bits}` detected"))?
+                Err(err!("unknown cull mode bits `{unknown_bits:b}` detected"))?
             }
             Ok(())
         }
@@ -680,8 +677,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -712,8 +709,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -745,8 +742,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -802,8 +799,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -867,8 +864,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             if self.front == self.back &&
@@ -975,8 +972,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         )
         {
             unsafe {
@@ -1097,8 +1094,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            allocator: &AnyAllocator,
         ) {
             use tuhka::vk;
             let feature = device
@@ -1171,8 +1168,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_13::extended_dynamic_state2::NAME)
@@ -1205,8 +1202,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_13::extended_dynamic_state2::NAME)
@@ -1240,8 +1237,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1277,7 +1274,7 @@ pub mod pipeline_state {
             }
             if self.value &&
                 device.get_feature(vk_10::depth_clamp::NAME)
-                .is_none_or(|&f| !f)
+                .is_none()
             {
                 Err(err!(
                     "`DepthClampEnable` is `true`, but the `depth_clamp` feature is not enabled"
@@ -1289,8 +1286,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1323,8 +1320,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1362,8 +1359,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1415,8 +1412,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1459,8 +1456,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1501,7 +1498,7 @@ pub mod pipeline_state {
             }
             if self.value &&
                 device.get_feature(vk_10::alpha_to_one::NAME)
-                .is_none_or(|&v| !v)
+                .is_none()
             {
                 Err(err!(
                     "`AlphaToOneEnable` is `true` but the `alpha_to_one` feature is not enabled."
@@ -1513,8 +1510,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1553,7 +1550,7 @@ pub mod pipeline_state {
             }
             if self.value &&
                 device.get_feature(vk_10::logic_op::NAME)
-                .is_none_or(|&v| !v)
+                .is_none()
             {
                 Err(err!(
                     "`LogicOpEnable` is `true` but the `logic_op` feature is not enabled."
@@ -1565,8 +1562,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1613,8 +1610,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            allocator: &AnyAllocator,
         ) {
             let feature = device
                 .get_feature(vk_ext::extended_dynamic_state3::NAME)
@@ -1659,7 +1656,7 @@ pub mod pipeline_state {
             if self.iter().any(|eq| eq.uses_second_source()) 
             {
                 if device.get_feature(vk_10::dual_src_blend::NAME)
-                    .is_none_or(|&e| !e)
+                    .is_none()
                 {
                     Err(err!("`ColorBlendEquations` uses dual source blending, but the `dual_src_blend` feature is not enabled"))?
                 }
@@ -1678,8 +1675,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             use tuhka::vk::ColorBlendEquationEXT;
             let feature = device
@@ -1728,8 +1725,8 @@ pub mod pipeline_state {
         unsafe fn cmd_set_dynamic(
             &self,
             device: &Device,
-            command_buffer: CommandBuffer<'_>,
-            _allocator: &AnyAlloc,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
         ) {
             use tuhka::vk::ColorComponentFlags;
             let feature = device

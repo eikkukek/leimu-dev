@@ -70,7 +70,9 @@ impl From<String> for Description
 
 pub(super) mod prelude {
 
-    use super::*;
+    use super::{error, *};
+
+    use crate::*;
 
     /// A boxed `dyn` [`Error`][error::Error].
     pub type AnyError = Box<dyn error::Error + Send + Sync + 'static>;
@@ -95,9 +97,11 @@ pub(super) mod prelude {
     impl Error {
 
         /// Constructs a new error from an optional `source` and a `description`.
-        pub fn new(source: Option<AnyError>, description: impl Into<Description>) -> Self {
+        pub fn new<E>(source: Option<E>, description: impl Into<Description>) -> Self
+            where E: error::Error + Send + Sync + 'static
+        {
             if let Some(source) = source {
-                Self::Error { source, description: description.into(), }
+                Self::Error { source: Box::new(source), description: description.into(), }
             } else {
                 Self::String { description: description.into() }
             }
@@ -148,13 +152,57 @@ pub(super) mod prelude {
             self.map_err(|err| Error::Error { source: Box::new(err), description: description.into() })
         }
     }
+
+    /// Indicates an error that's the result of [`Device::query_image_creation_limits`].
+    #[derive(Debug)]
+    pub enum FormatQueryError {
+        /// Indicates that the query was called with invalid input.
+        InvalidInput(String),
+        /// Indicates the format is not supported on this device.
+        FormatNotSupported(Format),
+        /// Indicates the specified combination of image usage is not supported on this device.
+        UsageNotSupported(ImageUsages, Option<ImageUsages>),
+        /// Indicates that an internal error has occurred.
+        ///
+        /// If this happens, the program **must** be terminated.
+        InternalError(Error),
+    }
+
+    impl Display for FormatQueryError {
+
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Self::InvalidInput(message) => write!(f, "{message}"),
+                Self::FormatNotSupported(format) => write!(f, "format `{format}` is not supported on this device for these parameters"),
+                Self::UsageNotSupported(usage, stencil) => {
+                    if let Some(stencil) = stencil {
+                        write!(f, "this combination of usages are not supported here: `usages`: `{usage}`, `stencil_usages`: `{stencil}`")
+                    } else {
+                        write!(f, "this combination of usages are not supported here: `usages`: `{usage}`")
+                    }
+                },
+                Self::InternalError(_) => write!(f, "an internal error has occurred"),
+            }
+        }
+    }
+
+    impl error::Error for FormatQueryError {
+
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            if let Self::InternalError(err) = self {
+                Some(err)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 #[macro_export]
 #[doc(hidden)]
 macro_rules! err {
     ($($t:tt)*) => {
-        Error::new(None, format!($($t)*))
+        $crate::Error::new::<$crate::Error>(None, format!($($t)*))
     };
 }
 

@@ -10,17 +10,33 @@ use tuhka::{self, vk, window};
 
 use crate::*;
 
+use sync::Arc;
+
 use mem::{
     alloc_vec::Vec32,
     vec32,
 };
 
-use sync::Arc;
+#[derive(Clone, Copy)]
+pub(crate) struct OnlyEqDisplayHandle(RawDisplayHandle);
+
+unsafe impl Send for OnlyEqDisplayHandle {}
+unsafe impl Sync for OnlyEqDisplayHandle {}
+
+impl OnlyEqDisplayHandle {
+
+    #[inline]
+    pub fn eq(&self, other: &RawDisplayHandle) -> bool {
+        self.0.eq(other)
+    }
+}
 
 struct Inner {
-    handle: tuhka::Instance,
+    id: InstanceId,
+    functions: tuhka::Instance,
     library: tuhka::Library,
-    display_handle: Option<RawDisplayHandle>,
+    display_handle: Option<OnlyEqDisplayHandle>,
+    surface_functions: Option<tuhka::khr::surface::Instance>,
 }
 
 impl Drop for Inner {
@@ -28,13 +44,18 @@ impl Drop for Inner {
     fn drop(&mut self) {
         unsafe {
             self.library.destroy_instance(
-                &self.handle,
+                &self.functions,
                 None,
             );
         } 
-        log::trace!("destroyed `Instance`");
+        log::info!("destroyed `Instance`");
     }
 }
+
+crate::__id!(
+    /// A unique [`Instance`] identifier.
+    InstanceId
+);
 
 /// The entry point for using `leimu`.
 ///
@@ -74,14 +95,16 @@ impl Instance {
                 enable_layers.as_ptr().cast(),
                 enable_layers.len() as usize,
             )}).p_enabled_extension_names(&enable_extensions);
-        let handle = unsafe {
+        let functions = unsafe {
             library.create_instance(&create_info, None)
         }.describe_err("failed to create Vulkan instance")?;
-        log::trace!("created `Instance` in display");
+        log::info!("created `Instance` in display");
         Ok(Self { inner: Inner {
-            handle,
+            id: InstanceId::next(),
+            surface_functions: Some(tuhka::khr::surface::Instance::new(&functions)),
+            functions,
             library,
-            display_handle: Some(display_handle),
+            display_handle: Some(OnlyEqDisplayHandle(display_handle)),
         }.arced()})
     }
 
@@ -106,29 +129,75 @@ impl Instance {
                 enable_layers.as_ptr().cast(),
                 enable_layers.len() as usize,
             )}).p_enabled_extension_names(&enable_extensions);
-        let handle = unsafe {
+        let functions = unsafe {
             library.create_instance(&create_info, None)
         }.describe_err("failed to create Vulkan instance")?;
-        log::trace!("created `Instance`");
+        log::info!("created `Instance`");
         Ok(Self { inner: Inner {
-            handle,
+            id: InstanceId::next(),
+            functions,
             library,
             display_handle: None,
+            surface_functions: None,
         }.arced()})
     }
 
+    /// Returns the unique [`InstanceId`] assigned to this instance.
+    pub fn id(&self) -> InstanceId {
+        self.inner.id
+    }
+    
     /// Returns [`tuhka::Instance`], which contains all core Vulkan 1.4 instance-level functions
     /// pointers.
-    pub fn functions(&self) -> &tuhka::Instance {
-        &self.inner.handle
+    #[inline]
+    pub(crate) fn functions(&self) -> &tuhka::Instance {
+        &self.inner.functions
     }
 
-    /// Returns whether this instance was created with a [`display handle`][1].
+    /// Returns [`tuhka::khr::surface::Instance`], which contains all core surface function pointers.
     ///
-    /// [1]: RawDisplayHandle
+    /// Returns `None` if the instance was created with no dsiplay handle.
+    #[inline]
+    pub(crate) fn surface_functions(&self) -> Option<&tuhka::khr::surface::Instance> {
+        self.inner.surface_functions.as_ref()
+    }
+
+    /// Returns whether this instance was created with a [display handle].
+    ///
+    /// [display handle]: RawDisplayHandle
     #[inline]
     pub fn has_display_handle(&self) -> bool {
         self.inner.display_handle.is_some()
+    }
+
+    /// Returns whether the [display handle], if any, this instance was created with.
+    ///
+    /// [display handle]: RawDisplayHandle
+    pub(crate) fn display_handle(&self) -> Option<OnlyEqDisplayHandle> {
+        self.inner.display_handle
+    }
+    
+    /// Creates a [`Surface`].
+    ///
+    /// # Parameters
+    /// - `label`: an optional debug label of the surface.
+    /// - `window`: A reference to [`HasDisplayHandle`][1] + [`HasWindowHandle`][2] objects.
+    ///
+    /// # Valid usage
+    /// - This instance **must** have been created with a display handle.
+    /// - The display handle of `window` **must** be the same as the one used to create this
+    ///   instance.
+    ///
+    /// [1]: raw_window_handle::HasDisplayHandle
+    /// [2]: raw_window_handle::HasWindowHandle
+    #[inline]
+    pub fn create_surface<'a>(
+        &self,
+        label: Option<&str>,
+        window: &'a dyn WindowHandle,
+    ) -> Result<Surface<'a>, Error>
+    {
+        Surface::new(self.clone(), label, window)
     }
 
     /// Finds all GPUs that match the given `attributes` and returns [`SuitableGpus`], which can be
@@ -159,6 +228,11 @@ impl Instance {
                 Ok(ctx) => suitable.push(ctx),
                 Err(err) => log::warn!("{err}"),
             }
+        }
+        if suitable.is_empty() {
+            Err(err!(
+                "no suitable GPUs found",
+            ))?
         }
         Ok(SuitableGpus { attributes, gpus: suitable, })
     }
@@ -198,7 +272,8 @@ impl SuitableGpus {
 
     /// Returns [`GpuInfo`] at `gpu_index`.
     ///
-    /// Panics if `gpu_index` is not the [`index`][1] of one of the gpus queried with
+    /// # Panics
+    /// If `gpu_index` is not the [`index`][1] of one of the gpus queried with
     /// [`Self::gpus`].
     ///
     /// [1]: GpuInfo::index
@@ -207,16 +282,44 @@ impl SuitableGpus {
         self.gpus[gpu_index as usize].gpu_info()
     }
 
+    /// Returns an iterator yielding [queue families], which support [presentation] for GPU at
+    /// `gpu_index`.
+    ///
+    /// # Panics
+    /// If `gpu_index` is not the [`index`][1] of one of the gpus queried with
+    /// [`Self::gpus`], or if the instance used to query the suitable GPUs was not created with a
+    /// display handle with [`Instance::new_in_display`].
+    ///
+    /// [presentation]: Swapchain::present
+    /// [queue families]: QueueFamilyInfo
+    /// [1]: GpuInfo::index
+    #[inline]
+    pub fn get_gpu_present_support(
+        &self,
+        gpu_index: u32,
+        surface: &Surface<'_>,
+    ) -> impl Iterator<Item = &QueueFamilyInfo> {
+        let ctx = &self.gpus[gpu_index as usize];
+        let functions = ctx
+            .instance()
+            .surface_functions()
+            .expect("`Instance` not created with `new_in_display`");
+        ctx.gpu_info().queue_families
+            .iter()
+            .filter(|q| unsafe {
+                functions.get_physical_device_surface_support(
+                    ctx.gpu_info().handle,
+                    q.index,
+                    surface.handle()
+                ).is_ok_and(|supported| supported)
+            })
+    }
+
     /// Creates a [`Device`] with `gpu_index`.
     ///
-    /// Panics if `gpu_index` is not the [`index`][1] of one of the gpus queried with
-    /// [`Self::gpus`].
     ///
-    /// # Valid usage
-    /// - `queue_attributes` **must** contain at least one item.
-    /// - If `queue_aliases` contains aliases aliasing other aliases, the other alias **must**
-    ///   appear first in the set of aliases.
-    /// - Each `alias` in `queue_aliases` **must** be a unique queue name.
+    /// Only one [`Device`] may be created at a time; if another device is active, this will block
+    /// the thread. This is done to avoid runtime checks of [`DeviceId`] equality checks.
     ///
     /// # Parameters
     /// - `gpu_index` the GPU index in [`gpus`][Self::gpus].
@@ -224,6 +327,17 @@ impl SuitableGpus {
     ///   for creating [device queues][DeviceQueue].
     /// - `queue_aliases`: an iterator yielding `(name, alias)` pairs specifying aliases for
     ///   [`queue_labels`][DeviceQueueAttributes::queue_labels].
+    /// 
+    /// # Valid usage
+    /// - `queue_attributes` **must** contain at least one item.
+    /// - If `queue_aliases` contains aliases aliasing other aliases, the other alias **must**
+    ///   appear first in the set of aliases.
+    /// - Each `alias` in `queue_aliases` **must** be a unique queue name.
+    ///
+    /// # Panics
+    /// Panics if `gpu_index` is not the [`index`][1] of one of the gpus queried with
+    /// [`Self::gpus`].
+    ///
     ///
     /// [1]: GpuInfo::index
     #[inline]
@@ -263,7 +377,7 @@ fn get_layers<'a>(
             value == "1"
         );
     if enable_validation {
-        log::trace!("enabling `VK_LAYER_KHRONOS_validation`");
+        log::info!("enabling `VK_LAYER_KHRONOS_validation`");
         unsafe {
             let len = library.enumerate_instance_layer_properties_len()
                 .describe_err("failed to enumerate instance layers")?.0;
@@ -274,7 +388,7 @@ fn get_layers<'a>(
             if let Some(layer) = found_layers.iter().find(|layer| {
                 layer.layer_name_as_cstr().unwrap_or_default() == c"VK_LAYER_KHRONOS_validation"
             }) {
-                log::trace!("found `VK_LAYER_KHRONOS_validation`");
+                log::info!("found `VK_LAYER_KHRONOS_validation`");
                 enabled_layers.push(LtPtr(layer.layer_name.as_ptr(), PhantomData));
             } else {
                 log::warn!("VK_LAYER_KHRONOS_validation not available");
@@ -290,7 +404,7 @@ fn get_extensions_in_disp(
 ) -> Result<Vec32<*const i8>, Error> {
     let mut required = HashSet::<&'static CStr>::new();
     let extensions = window::required_instance_extensions(display_handle)
-        .ok_or_else(|| Error::new(None, "unsupported platform"))?;
+        .ok_or_else(|| err!("unsupported platform"))?;
     required.extend(extensions.iter());
     let mut enable = vec32![];
     unsafe {
@@ -315,7 +429,7 @@ fn get_extensions_in_disp(
         for r in required {
             log::warn!("failed to find required instance extension {r:?}");
         }
-        return Err(Error::new(None, "missing required instance extensions"))
+        return Err(err!("missing required instance extensions"))
     }
     Ok(enable)
 }

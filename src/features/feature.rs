@@ -3,6 +3,7 @@ use super::*;
 use core::{
     any::Any,
     ops::Deref,
+    fmt::{self, Display}
 };
 use std::marker::PhantomData;
 
@@ -45,13 +46,13 @@ use obj::FeatureDataObj;
 /// The name of a [`Device`] feature.
 ///
 /// Can be used to get information about an enabled feature.
-#[derive(Clone, Copy)]
-pub struct FeatureName<T: 'static + Send + Sync> {
+#[derive(Clone, Copy, Debug)]
+pub struct FeatureName<T: Send + Sync + 'static> {
     pub(crate) name: ConstName,
     _marker: PhantomData<T>,
 }
 
-impl<T: 'static + Send + Sync> FeatureName<T> {
+impl<T: Send + Sync + 'static> FeatureName<T> {
 
     /// Creates a name from a static string.
     #[inline]
@@ -60,6 +61,14 @@ impl<T: 'static + Send + Sync> FeatureName<T> {
             name: ConstName::new(name),
             _marker: PhantomData,
         }
+    }
+}
+
+impl<T: Send + Sync + 'static> Display for FeatureName<T> {
+    
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, f)
     }
 }
 
@@ -76,7 +85,7 @@ pub(super) enum FeatureEnum {
 /// relevant structures for enabling those features.
 pub struct DeviceFeature {
     pub(super) inner: FeatureEnum,
-    pub(super) name: ConstName,
+    pub(crate) name: ConstName,
 }
 
 /// A trait object for any data associated with a [`feature`][features].
@@ -193,7 +202,7 @@ impl FeatureExt {
 ///
 /// [1]: FeatureEnableContext::set_features
 /// [2]: vk::StructureType
-pub(crate) unsafe fn feature_ext<S, E, F: 'static + Send + Sync>(
+pub(crate) fn feature_ext<S, E, F: 'static + Send + Sync>(
     fn_support: S,
     fn_enable: E,
     name: FeatureName<F>,

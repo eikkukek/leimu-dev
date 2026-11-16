@@ -14,16 +14,26 @@ pub(crate) struct MemoryAllocation {
     pub memory_type_index: u32,
 }
 /// Specifies what type of memory a buffer or an image is backed by.
+///
+/// The default value is [`DeviceLocal`][Self::DeviceLocal].
 #[repr(u32)]
 #[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash)]
 pub enum MemoryType {
     #[default]
-    /// Specifies that the backed memory of this object is local to the GPU, and **cannot** be
-    /// mapped.
+    /// Specifies that the backed memory of this object is local to the GPU, and **may**
+    /// not be mapped. Memory of this type is most efficient for device access.
+    ///
+    /// If you want device local memory that's also to be mappable, you can specify the
+    /// [`HostVisiblePreferDeviceLocal`][1] memory type.
     ///
     /// This is the default value.
+    ///
+    /// [1]: Self::HostVisiblePreferDeviceLocal
     DeviceLocal = 0,
-    /// Specifies that the memory is visible to the host and **can** be mapped.
+    /// Specifies that the memory is visible to the host and **can** be mapped. This doesn't have
+    /// a preference as to whether the memory is also [`DeviceLocal`][1].
+    ///
+    /// [1]: Self::DeviceLocal
     HostVisible,
     /// This is the same as [`HostVisible`][1], but prefers memory types that are **not** also device
     /// local.

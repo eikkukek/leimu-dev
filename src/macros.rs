@@ -23,7 +23,7 @@ macro_rules! __bitflags_display {
                     if unknown_bits != 0 {
                         write!(f, "{unknown_bits:b}")
                     } else {
-                        write!(f, "empty")
+                        write!(f, "0x0")
                     }
                 }
             }
@@ -47,6 +47,30 @@ macro_rules! __impl_slice_eq {
             #[inline]
             fn eq(&self, other: &$rhs) -> bool {
                 self[..] == other[..]
+            }
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __id {
+    (
+        $(#[$outer:meta])*
+        $name:ident
+    ) => {
+        $(#[$outer])*
+        #[repr(transparent)]
+        #[derive(Clone, Copy, $crate::bytemuck::ByteEq, $crate::bytemuck::ByteHash, Debug)]
+        pub struct $name(u64);
+        unsafe impl $crate::bytemuck::NoUninit for $name {}
+
+        impl $name {
+
+            fn next() -> Self {
+                use $crate::sync::atomic;
+                static NEXT_ID: atomic::AtomicU64 = atomic::AtomicU64::new(0);
+                Self(NEXT_ID.fetch_add(1, atomic::Ordering::AcqRel))
             }
         }
     };

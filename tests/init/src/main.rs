@@ -1,19 +1,25 @@
+use std::alloc::Global;
+
+use core::error::Error as StdError;
+
 use leimu::{
-    DeviceAttributes, Features, Instance, SamplerFlags, vk_core,
+    bytemuck::cast_slice,
+    vk_core,
 };
 
 fn main() -> Result<(), leimu::Error> {
     env_logger::init();
-    let instance = Instance::new_standalone()?;
+    let instance = leimu::Instance::new_standalone()?;
     let suitable_gpus = instance
-        .find_suitable_gpus(DeviceAttributes {
-            required_features: Features::from_iter([
+        .find_suitable_gpus(leimu::DeviceAttributes {
+            required_features: leimu::Features::from_iter([
                 vk_core::push_descriptor::new(),
                 vk_core::shader_zero_initialize_workgroup_memory::new(),
                 vk_core::extended_dynamic_state2::builder()
                     .extended_dynamic_state2(true)
                     .build(),
-                vk_core::sampler_anisotropy::new(true),
+                vk_core::sampler_anisotropy::new(),
+                vk_core::image_cube_array::new(),
             ]),
         })?;
     let gpu = suitable_gpus.gpus()
@@ -62,7 +68,7 @@ fn main() -> Result<(), leimu::Error> {
     );
     let _sampler = device.create_sampler(leimu::SamplerAttributes {
         label: Some("my sampler"),
-        flags: SamplerFlags::ANISOTROPY_ENABLE,
+        flags: leimu::SamplerFlags::ANISOTROPY_ENABLE,
         mag_filter: leimu::SamplerFilter::Linear,
         min_filter: leimu::SamplerFilter::Linear,
         mipmap_mode: leimu::SamplerMipmapMode::Linear,
@@ -75,11 +81,136 @@ fn main() -> Result<(), leimu::Error> {
             label: Some("my buffer"),
             size: 64,
             usage: leimu::BufferUsages::TRANSFER_SRC,
-            memory_type: leimu::MemoryType::DeviceLocal
+            memory_type: leimu::MemoryType::HostVisible,
         },
-        (),
+        Global,
     )?.clone();
     let _clone = buffer.clone();
-    println!("{:?}", buffer.label());
+    buffer.map(leimu::MapMode::WriteOnly, |buf| {
+        if let Ok(mut buf) = buf {
+            assert!(buf.read_only(..).is_err());
+            let slice = buf.write_only_slice(..)?;
+            let (mut slice, _) = slice
+                .try_cast_slice::<f32>()?
+                .subslice(0..8)
+                .into_chunks::<4>();
+            slice.copy_from_slice(&[
+                [1.0, 2.0, 3.0, 4.0],
+                [5.0, 6.0, 7.0, 8.0],
+            ]);
+        }
+        Ok(())
+    });
+    _clone.map(leimu::MapMode::ReadOnly, |buf| {
+        if let Ok(mut buf) = buf {
+            assert!(buf.write_only::<f32>(0).is_err());
+            assert_eq!(
+                cast_slice::<u8, f32>(buf.read_only(0..4*4*2).unwrap())
+                    .as_chunks::<4>().0,
+                [[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]
+            );
+        }
+        Ok(())
+    });
+    assert_eq!(_clone.label(), Some("my buffer"));
+    let view_formats = [
+        leimu::Format::Bc1_Rgb_Unorm_Block,
+    ];
+    match device.create_image(
+        leimu::ImageAttributes {
+            label: Some("my image"),
+            format: leimu::Format::Bc1_Rgb_Srgb_Block,
+            usage: leimu::ImageUsages::SAMPLED,
+            array_layers: 6,
+            extent: leimu::ImageExtent::default(),
+            samples: leimu::SampleCountBit::X1,
+            view_formats: &view_formats,
+            ..Default::default()
+        },
+        Global,
+    ) {
+        Ok(img) => {
+            let img = img.clone().clone().clone();
+            assert_eq!(Some("my image"), img.label());
+        }
+        Err(err) => {
+            if let Some(src) = err.source() {
+                println!("{}", src);
+            } else {
+                println!("{}", err);
+            }
+        },
+    }
+    let arena = leimu::mem::arena::Arena::new(512).unwrap();
+    let cube_image = device.create_image(
+        leimu::ImageAttributes  {
+            label: Some("cube image"),
+            format: leimu::Format::R8g8b8a8_Srgb,
+            usage: leimu::ImageUsages::SAMPLED,
+            array_layers: 12,
+            extent: leimu::ImageExtent::default()
+                .width(256)
+                .height(256),
+            view_compatibility: leimu::ImageViewCompatibility::CUBE,
+            ..Default::default()
+        },
+        &arena,
+    )?;
+    let cube_view = device.create_image_view(
+        cube_image,
+        leimu::ImageViewAttributes {
+            label: Some("cube view"),
+            format: None,
+            dimensions: leimu::ImageViewDim::Cube,
+            range: leimu::ImageSubresourceRange::default()
+                .layer_count(6),
+            component_mapping: Default::default(),
+        },
+        Global,
+    )?;
+    let image_3d = device.create_image(
+        leimu::ImageAttributes {
+            label: Some("3d image"),
+            format: leimu::Format::R8g8b8a8_Srgb,
+            usage: leimu::ImageUsages::SAMPLED,
+            dimensions: leimu::ImageDim::Dim3,
+            extent: leimu::ImageExtent::default()
+                .map(|_| 256),
+            view_compatibility: leimu::ImageViewCompatibility::DIM3_SLICE_AS_ARRAY,
+            mip_levels: 2,
+            ..Default::default()
+        },
+        Global,
+    )?;
+    let view_3d_slice = device.create_image_view(
+        image_3d.clone(),
+        leimu::ImageViewAttributes {
+            label: Some("2d array of 3d"),
+            format: Some(leimu::Format::R8g8b8a8_Srgb),
+            dimensions: leimu::ImageViewDim::Dim2Array,
+            range: leimu::ImageSubresourceRange::default()
+                .base_mip_level(1)
+                .base_array_layer(64)
+                .layer_count(64),
+            component_mapping: Default::default(),
+        },
+        Global,
+    )?;
+    let view_3d_value = device.create_image_view(
+        image_3d.clone(),
+        leimu::ImageViewAttributes {
+            label: Some("2d slice of 3d"),
+            format: Some(leimu::Format::R8g8b8a8_Srgb),
+            dimensions: leimu::ImageViewDim::Dim2,
+            range: leimu::ImageSubresourceRange::default()
+                .base_mip_level(1)
+                .base_array_layer(64)
+                .layer_count(1),
+            component_mapping: Default::default(),
+        },
+        Global,
+    )?;
+    let view = view_3d_value.erase_allocator();
+    println!("{}", view.label().unwrap());
     Ok(())
 }

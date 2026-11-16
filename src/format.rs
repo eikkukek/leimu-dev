@@ -1,6 +1,6 @@
 #![doc = r" This file is auto-generated, do not modify manually."]
-#[doc = r" An enumeration of numeric format types."]
 use bytemuck::{ByteEq, ByteHash, CheckedBitPattern, NoUninit, Zeroable};
+#[doc = r" An enumeration of numeric format types."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum NumericFormat {
     #[doc = r" Components are unsigned normalized values in the range `0.0..=1.0`."]
@@ -98,6 +98,7 @@ pub struct FormatCompatibility {
     texel_block_size: u64,
     texel_block_extent: (u32, u32, u32),
     texels_per_block: u8,
+    is_alpha_format: bool,
 }
 impl FormatCompatibility {
     #[doc = r" Returns the size of a single texel block. "]
@@ -119,9 +120,13 @@ impl FormatCompatibility {
         self.texels_per_block
     }
     #[doc = r" Returns whether `self` is size-compatible with `other`."]
+    #[doc = r""]
+    #[doc = r" Returns `true` is neither or both are alpha formats and if the sizes of their texel"]
+    #[doc = r" blocks are equal."]
     #[inline]
-    pub const fn is_size_compatible(&self, other: &Self) -> bool {
+    pub const fn is_size_compatible_with(&self, other: &Self) -> bool {
         self.texel_block_size == other.texel_block_size
+            && !(self.is_alpha_format ^ other.is_alpha_format)
     }
 }
 impl PartialEq for FormatCompatibility {
@@ -158,6 +163,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 0u64,
         texel_block_extent: (0u32, 0u32, 0u32),
         texels_per_block: 0u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit",
@@ -165,6 +171,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 1u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit",
@@ -172,6 +179,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 2u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit alpha",
@@ -179,6 +187,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 1u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: true,
     },
     FormatCompatibility {
         name: "24-bit",
@@ -186,6 +195,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "32-bit",
@@ -193,6 +203,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 4u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "48-bit",
@@ -200,6 +211,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit",
@@ -207,6 +219,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "96-bit",
@@ -214,6 +227,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 12u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "128-bit",
@@ -221,6 +235,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "192-bit",
@@ -228,6 +243,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 24u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "256-bit",
@@ -235,6 +251,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 32u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "D16",
@@ -242,6 +259,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 2u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "D24",
@@ -249,6 +267,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 4u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "D32",
@@ -256,6 +275,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 4u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "S8",
@@ -263,6 +283,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 1u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "D16S8",
@@ -270,6 +291,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "D24S8",
@@ -277,6 +299,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 4u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "D32S8",
@@ -284,6 +307,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 5u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC1_RGB",
@@ -291,6 +315,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC1_RGBA",
@@ -298,6 +323,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC2",
@@ -305,6 +331,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC3",
@@ -312,6 +339,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC4",
@@ -319,6 +347,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC5",
@@ -326,6 +355,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC6H",
@@ -333,6 +363,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "BC7",
@@ -340,6 +371,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ETC2_RGB",
@@ -347,6 +379,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ETC2_RGBA",
@@ -354,6 +387,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ETC2_EAC_RGBA",
@@ -361,6 +395,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "EAC_R",
@@ -368,6 +403,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "EAC_RG",
@@ -375,6 +411,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_4x4",
@@ -382,6 +419,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 16u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_5x4",
@@ -389,6 +427,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (5u32, 4u32, 1u32),
         texels_per_block: 20u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_5x5",
@@ -396,6 +435,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (5u32, 5u32, 1u32),
         texels_per_block: 25u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_6x5",
@@ -403,6 +443,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (6u32, 5u32, 1u32),
         texels_per_block: 30u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_6x6",
@@ -410,6 +451,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (6u32, 6u32, 1u32),
         texels_per_block: 36u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_8x5",
@@ -417,6 +459,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (8u32, 5u32, 1u32),
         texels_per_block: 40u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_8x6",
@@ -424,6 +467,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (8u32, 6u32, 1u32),
         texels_per_block: 48u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_8x8",
@@ -431,6 +475,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (8u32, 8u32, 1u32),
         texels_per_block: 64u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_10x5",
@@ -438,6 +483,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (10u32, 5u32, 1u32),
         texels_per_block: 50u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_10x6",
@@ -445,6 +491,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (10u32, 6u32, 1u32),
         texels_per_block: 60u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_10x8",
@@ -452,6 +499,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (10u32, 8u32, 1u32),
         texels_per_block: 80u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_10x10",
@@ -459,6 +507,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (10u32, 10u32, 1u32),
         texels_per_block: 100u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_12x10",
@@ -466,6 +515,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (12u32, 10u32, 1u32),
         texels_per_block: 120u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_12x12",
@@ -473,6 +523,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (12u32, 12u32, 1u32),
         texels_per_block: 144u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "32-bit G8B8G8R8",
@@ -480,6 +531,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 4u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "32-bit B8G8R8G8",
@@ -487,6 +539,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 4u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit 3-plane 420",
@@ -494,6 +547,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit 2-plane 420",
@@ -501,6 +555,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit 3-plane 422",
@@ -508,6 +563,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit 2-plane 422",
@@ -515,6 +571,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit 3-plane 444",
@@ -522,6 +579,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit R10G10B10A10",
@@ -529,6 +587,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit G10B10G10R10",
@@ -536,6 +595,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit B10G10R10G10",
@@ -543,6 +603,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "10-bit 3-plane 420",
@@ -550,6 +611,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "10-bit 2-plane 420",
@@ -557,6 +619,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "10-bit 3-plane 422",
@@ -564,6 +627,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "10-bit 2-plane 422",
@@ -571,6 +635,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "10-bit 3-plane 444",
@@ -578,6 +643,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit R12G12B12A12",
@@ -585,6 +651,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit G12B12G12R12",
@@ -592,6 +659,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit B12G12R12G12",
@@ -599,6 +667,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "12-bit 3-plane 420",
@@ -606,6 +675,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "12-bit 2-plane 420",
@@ -613,6 +683,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "12-bit 3-plane 422",
@@ -620,6 +691,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "12-bit 2-plane 422",
@@ -627,6 +699,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "12-bit 3-plane 444",
@@ -634,6 +707,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit G16B16G16R16",
@@ -641,6 +715,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit B16G16R16G16",
@@ -648,6 +723,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (2u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit 3-plane 420",
@@ -655,6 +731,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit 2-plane 420",
@@ -662,6 +739,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit 3-plane 422",
@@ -669,6 +747,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit 2-plane 422",
@@ -676,6 +755,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit 3-plane 444",
@@ -683,6 +763,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "PVRTC1_2BPP",
@@ -690,6 +771,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (8u32, 4u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "PVRTC1_4BPP",
@@ -697,6 +779,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "PVRTC2_2BPP",
@@ -704,6 +787,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (8u32, 4u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "PVRTC2_4BPP",
@@ -711,6 +795,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (4u32, 4u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_3x3x3",
@@ -718,6 +803,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (3u32, 3u32, 3u32),
         texels_per_block: 27u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_4x3x3",
@@ -725,6 +811,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 3u32, 3u32),
         texels_per_block: 36u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_4x4x3",
@@ -732,6 +819,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 3u32),
         texels_per_block: 48u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_4x4x4",
@@ -739,6 +827,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (4u32, 4u32, 4u32),
         texels_per_block: 64u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_5x4x4",
@@ -746,6 +835,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (5u32, 4u32, 4u32),
         texels_per_block: 80u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_5x5x4",
@@ -753,6 +843,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (5u32, 5u32, 4u32),
         texels_per_block: 100u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_5x5x5",
@@ -760,6 +851,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (5u32, 5u32, 5u32),
         texels_per_block: 125u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_6x5x5",
@@ -767,6 +859,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (6u32, 5u32, 5u32),
         texels_per_block: 150u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_6x6x5",
@@ -774,6 +867,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (6u32, 6u32, 5u32),
         texels_per_block: 180u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "ASTC_6x6x6",
@@ -781,6 +875,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 16u64,
         texel_block_extent: (6u32, 6u32, 6u32),
         texels_per_block: 216u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "8-bit 2-plane 444",
@@ -788,6 +883,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 3u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "10-bit 2-plane 444",
@@ -795,6 +891,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "12-bit 2-plane 444",
@@ -802,6 +899,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "16-bit 2-plane 444",
@@ -809,6 +907,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "64-bit R14G14B14A14",
@@ -816,6 +915,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 8u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "14-bit 2-plane 420",
@@ -823,6 +923,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
     FormatCompatibility {
         name: "14-bit 2-plane 422",
@@ -830,6 +931,7 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
         texel_block_size: 6u64,
         texel_block_extent: (1u32, 1u32, 1u32),
         texels_per_block: 1u8,
+        is_alpha_format: false,
     },
 ];
 #[doc = r" An enumeration of all supported Vulkan formats."]
@@ -838,417 +940,1342 @@ static COMPATIBILITY: [FormatCompatibility; 97usize] = [
 #[allow(non_camel_case_types)]
 pub enum Format {
     #[default]
+    #[doc = "Specifies that the format is not specified."]
+    #[doc = "# Format information"]
+    #[doc = "- Class: `undefined` (uncompressed)"]
+    #[doc = "- Aspects: ``NONE``"]
+    #[doc = "- Texel block size `0`"]
+    #[doc = "- Texel block extent `(0, 0, 0)`"]
+    #[doc = "- Texels per block `0`"]
     Undefined = 0i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R4g4_Unorm_Pack8 = 1i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R4g4b4a4_Unorm_Pack16 = 2i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B4g4r4a4_Unorm_Pack16 = 3i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R5g6b5_Unorm_Pack16 = 4i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B5g6r5_Unorm_Pack16 = 5i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R5g5b5a1_Unorm_Pack16 = 6i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B5g5r5a1_Unorm_Pack16 = 7i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A1r5g5b5_Unorm_Pack16 = 8i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Unorm = 9i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Snorm = 10i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Uscaled = 11i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Sscaled = 12i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Uint = 13i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Sint = 14i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8_Srgb = 15i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Unorm = 16i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Snorm = 17i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Uscaled = 18i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Sscaled = 19i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Uint = 20i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Sint = 21i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8_Srgb = 22i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Unorm = 23i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Snorm = 24i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Uscaled = 25i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Sscaled = 26i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Uint = 27i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Sint = 28i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8_Srgb = 29i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Unorm = 30i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Snorm = 31i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Uscaled = 32i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Sscaled = 33i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Uint = 34i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Sint = 35i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `24-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8_Srgb = 36i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Unorm = 37i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Snorm = 38i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Uscaled = 39i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Sscaled = 40i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Uint = 41i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Sint = 42i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R8g8b8a8_Srgb = 43i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Unorm = 44i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Snorm = 45i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Uscaled = 46i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Sscaled = 47i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Uint = 48i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Sint = 49i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B8g8r8a8_Srgb = 50i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Unorm_Pack32 = 51i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Snorm_Pack32 = 52i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Uscaled_Pack32 = 53i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Sscaled_Pack32 = 54i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Uint_Pack32 = 55i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Sint_Pack32 = 56i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8b8g8r8_Srgb_Pack32 = 57i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2r10g10b10_Unorm_Pack32 = 58i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2r10g10b10_Snorm_Pack32 = 59i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2r10g10b10_Uscaled_Pack32 = 60i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2r10g10b10_Sscaled_Pack32 = 61i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2r10g10b10_Uint_Pack32 = 62i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2r10g10b10_Sint_Pack32 = 63i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2b10g10r10_Unorm_Pack32 = 64i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2b10g10r10_Snorm_Pack32 = 65i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2b10g10r10_Uscaled_Pack32 = 66i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2b10g10r10_Sscaled_Pack32 = 67i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2b10g10r10_Uint_Pack32 = 68i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A2b10g10r10_Sint_Pack32 = 69i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Unorm = 70i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Snorm = 71i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Uscaled = 72i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Sscaled = 73i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Uint = 74i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Sint = 75i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16_Sfloat = 76i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Unorm = 77i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Snorm = 78i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Uscaled = 79i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Sscaled = 80i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Uint = 81i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Sint = 82i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16_Sfloat = 83i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Unorm = 84i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Snorm = 85i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Uscaled = 86i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Sscaled = 87i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Uint = 88i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Sint = 89i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `48-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `6`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16_Sfloat = 90i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Unorm = 91i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Snorm = 92i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Uscaled = 93i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Sscaled = 94i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Uint = 95i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Sint = 96i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R16g16b16a16_Sfloat = 97i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32_Uint = 98i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32_Sint = 99i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32_Sfloat = 100i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32_Uint = 101i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32_Sint = 102i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32_Sfloat = 103i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `96-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `12`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32b32_Uint = 104i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `96-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `12`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32b32_Sint = 105i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `96-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `12`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32b32_Sfloat = 106i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `128-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32b32a32_Uint = 107i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `128-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32b32a32_Sint = 108i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `128-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R32g32b32a32_Sfloat = 109i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64_Uint = 110i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64_Sint = 111i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `64-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64_Sfloat = 112i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `128-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64_Uint = 113i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `128-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64_Sint = 114i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `128-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64_Sfloat = 115i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `192-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `24`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64b64_Uint = 116i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `192-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `24`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64b64_Sint = 117i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `192-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `24`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64b64_Sfloat = 118i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `256-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `32`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64b64a64_Uint = 119i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `256-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `32`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64b64a64_Sint = 120i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `256-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `32`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     R64g64b64a64_Sfloat = 121i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     B10g11r11_Ufloat_Pack32 = 122i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `32-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     E5b9g9r9_Ufloat_Pack32 = 123i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `D16` (uncompressed)"]
+    #[doc = "- Aspects: `DEPTH`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     D16_Unorm = 124i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `D24` (uncompressed)"]
+    #[doc = "- Aspects: `DEPTH`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     X8_D24_Unorm_Pack32 = 125i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `D32` (uncompressed)"]
+    #[doc = "- Aspects: `DEPTH`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     D32_Sfloat = 126i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `S8` (uncompressed)"]
+    #[doc = "- Aspects: `STENCIL`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     S8_Uint = 127i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `D16S8` (uncompressed)"]
+    #[doc = "- Aspects: `DEPTH | STENCIL`"]
+    #[doc = "- Texel block size `3`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     D16_Unorm_S8_Uint = 128i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `D24S8` (uncompressed)"]
+    #[doc = "- Aspects: `DEPTH | STENCIL`"]
+    #[doc = "- Texel block size `4`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     D24_Unorm_S8_Uint = 129i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `D32S8` (uncompressed)"]
+    #[doc = "- Aspects: `STENCIL`"]
+    #[doc = "- Texel block size `5`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     D32_Sfloat_S8_Uint = 130i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC1_RGB` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc1_Rgb_Unorm_Block = 131i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC1_RGB` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc1_Rgb_Srgb_Block = 132i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC1_RGBA` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc1_Rgba_Unorm_Block = 133i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC1_RGBA` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc1_Rgba_Srgb_Block = 134i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC2` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc2_Unorm_Block = 135i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC2` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc2_Srgb_Block = 136i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC3` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc3_Unorm_Block = 137i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC3` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc3_Srgb_Block = 138i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC4` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc4_Unorm_Block = 139i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC4` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc4_Snorm_Block = 140i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC5` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc5_Unorm_Block = 141i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC5` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc5_Snorm_Block = 142i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC6H` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc6h_Ufloat_Block = 143i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC6H` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc6h_Sfloat_Block = 144i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC7` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc7_Unorm_Block = 145i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `BC7` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Bc7_Srgb_Block = 146i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ETC2_RGB` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Etc2_R8g8b8_Unorm_Block = 147i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ETC2_RGB` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Etc2_R8g8b8_Srgb_Block = 148i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ETC2_RGBA` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Etc2_R8g8b8a1_Unorm_Block = 149i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ETC2_RGBA` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Etc2_R8g8b8a1_Srgb_Block = 150i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ETC2_EAC_RGBA` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Etc2_R8g8b8a8_Unorm_Block = 151i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ETC2_EAC_RGBA` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Etc2_R8g8b8a8_Srgb_Block = 152i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `EAC_R` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Eac_R11_Unorm_Block = 153i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `EAC_R` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `8`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Eac_R11_Snorm_Block = 154i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `EAC_RG` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Eac_R11g11_Unorm_Block = 155i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `EAC_RG` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Eac_R11g11_Snorm_Block = 156i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_4x4` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Astc_4x4_Unorm_Block = 157i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_4x4` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(4, 4, 1)`"]
+    #[doc = "- Texels per block `16`"]
     Astc_4x4_Srgb_Block = 158i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_5x4` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(5, 4, 1)`"]
+    #[doc = "- Texels per block `20`"]
     Astc_5x4_Unorm_Block = 159i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_5x4` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(5, 4, 1)`"]
+    #[doc = "- Texels per block `20`"]
     Astc_5x4_Srgb_Block = 160i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_5x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(5, 5, 1)`"]
+    #[doc = "- Texels per block `25`"]
     Astc_5x5_Unorm_Block = 161i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_5x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(5, 5, 1)`"]
+    #[doc = "- Texels per block `25`"]
     Astc_5x5_Srgb_Block = 162i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_6x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(6, 5, 1)`"]
+    #[doc = "- Texels per block `30`"]
     Astc_6x5_Unorm_Block = 163i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_6x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(6, 5, 1)`"]
+    #[doc = "- Texels per block `30`"]
     Astc_6x5_Srgb_Block = 164i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_6x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(6, 5, 1)`"]
+    #[doc = "- Texels per block `30`"]
     Astc_6x6_Unorm_Block = 165i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_6x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(6, 5, 1)`"]
+    #[doc = "- Texels per block `30`"]
     Astc_6x6_Srgb_Block = 166i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_8x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(8, 5, 1)`"]
+    #[doc = "- Texels per block `40`"]
     Astc_8x5_Unorm_Block = 167i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_8x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(8, 5, 1)`"]
+    #[doc = "- Texels per block `40`"]
     Astc_8x5_Srgb_Block = 168i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_8x6` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(8, 6, 1)`"]
+    #[doc = "- Texels per block `48`"]
     Astc_8x6_Unorm_Block = 169i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_8x6` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(8, 6, 1)`"]
+    #[doc = "- Texels per block `48`"]
     Astc_8x6_Srgb_Block = 170i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_8x8` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(8, 8, 1)`"]
+    #[doc = "- Texels per block `64`"]
     Astc_8x8_Unorm_Block = 171i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_8x8` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(8, 8, 1)`"]
+    #[doc = "- Texels per block `64`"]
     Astc_8x8_Srgb_Block = 172i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 5, 1)`"]
+    #[doc = "- Texels per block `50`"]
     Astc_10x5_Unorm_Block = 173i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x5` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 5, 1)`"]
+    #[doc = "- Texels per block `50`"]
     Astc_10x5_Srgb_Block = 174i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x6` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 6, 1)`"]
+    #[doc = "- Texels per block `60`"]
     Astc_10x6_Unorm_Block = 175i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x6` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 6, 1)`"]
+    #[doc = "- Texels per block `60`"]
     Astc_10x6_Srgb_Block = 176i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x8` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 8, 1)`"]
+    #[doc = "- Texels per block `80`"]
     Astc_10x8_Unorm_Block = 177i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x8` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 8, 1)`"]
+    #[doc = "- Texels per block `80`"]
     Astc_10x8_Srgb_Block = 178i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x10` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 10, 1)`"]
+    #[doc = "- Texels per block `100`"]
     Astc_10x10_Unorm_Block = 179i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_10x10` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(10, 10, 1)`"]
+    #[doc = "- Texels per block `100`"]
     Astc_10x10_Srgb_Block = 180i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_12x10` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(12, 10, 1)`"]
+    #[doc = "- Texels per block `120`"]
     Astc_12x10_Unorm_Block = 181i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_12x10` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(12, 10, 1)`"]
+    #[doc = "- Texels per block `120`"]
     Astc_12x10_Srgb_Block = 182i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_12x12` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(12, 12, 1)`"]
+    #[doc = "- Texels per block `144`"]
     Astc_12x12_Unorm_Block = 183i32,
+    #[doc = "# Format information"]
+    #[doc = "- Class: `ASTC_12x12` (compressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `16`"]
+    #[doc = "- Texel block extent `(12, 12, 1)`"]
+    #[doc = "- Texels per block `144`"]
     Astc_12x12_Srgb_Block = 184i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G8b8g8r8_422_Unorm = 1000156000i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    B8g8r8g8_422_Unorm = 1000156001i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G8_B8_R8_3plane_420_Unorm = 1000156002i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G8_B8r8_2plane_420_Unorm = 1000156003i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G8_B8_R8_3plane_422_Unorm = 1000156004i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G8_B8r8_2plane_422_Unorm = 1000156005i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G8_B8_R8_3plane_444_Unorm = 1000156006i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    R10x6_Unorm_Pack16 = 1000156007i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    R10x6g10x6_Unorm_2pack16 = 1000156008i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    R10x6g10x6b10x6a10x6_Unorm_4pack16 = 1000156009i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G10x6b10x6g10x6r10x6_422_Unorm_4pack16 = 1000156010i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    B10x6g10x6r10x6g10x6_422_Unorm_4pack16 = 1000156011i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G10x6_B10x6_R10x6_3plane_420_Unorm_3pack16 = 1000156012i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G10x6_B10x6r10x6_2plane_420_Unorm_3pack16 = 1000156013i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G10x6_B10x6_R10x6_3plane_422_Unorm_3pack16 = 1000156014i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G10x6_B10x6r10x6_2plane_422_Unorm_3pack16 = 1000156015i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G10x6_B10x6_R10x6_3plane_444_Unorm_3pack16 = 1000156016i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    R12x4_Unorm_Pack16 = 1000156017i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    R12x4g12x4_Unorm_2pack16 = 1000156018i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    R12x4g12x4b12x4a12x4_Unorm_4pack16 = 1000156019i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G12x4b12x4g12x4r12x4_422_Unorm_4pack16 = 1000156020i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    B12x4g12x4r12x4g12x4_422_Unorm_4pack16 = 1000156021i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G12x4_B12x4_R12x4_3plane_420_Unorm_3pack16 = 1000156022i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G12x4_B12x4r12x4_2plane_420_Unorm_3pack16 = 1000156023i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G12x4_B12x4_R12x4_3plane_422_Unorm_3pack16 = 1000156024i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G12x4_B12x4r12x4_2plane_422_Unorm_3pack16 = 1000156025i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G12x4_B12x4_R12x4_3plane_444_Unorm_3pack16 = 1000156026i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G16b16g16r16_422_Unorm = 1000156027i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    B16g16r16g16_422_Unorm = 1000156028i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G16_B16_R16_3plane_420_Unorm = 1000156029i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G16_B16r16_2plane_420_Unorm = 1000156030i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G16_B16_R16_3plane_422_Unorm = 1000156031i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G16_B16r16_2plane_422_Unorm = 1000156032i32,
-    #[doc = "Provided by VK_VERSION_1_1"]
-    G16_B16_R16_3plane_444_Unorm = 1000156033i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    G8_B8r8_2plane_444_Unorm = 1000330000i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    G10x6_B10x6r10x6_2plane_444_Unorm_3pack16 = 1000330001i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    G12x4_B12x4r12x4_2plane_444_Unorm_3pack16 = 1000330002i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    G16_B16r16_2plane_444_Unorm = 1000330003i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
+    #[doc = "Requires enabling the [`_4444_formats`][1] feature."]
+    #[doc = ""]
+    #[doc = "[1]: crate::vk_13::_4444_formats"]
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A4r4g4b4_Unorm_Pack16 = 1000340000i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
+    #[doc = "Requires enabling the [`_4444_formats`][1] feature."]
+    #[doc = ""]
+    #[doc = "[1]: crate::vk_13::_4444_formats"]
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A4b4g4r4_Unorm_Pack16 = 1000340001i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_4x4_Sfloat_Block = 1000066000i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_5x4_Sfloat_Block = 1000066001i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_5x5_Sfloat_Block = 1000066002i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_6x5_Sfloat_Block = 1000066003i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_6x6_Sfloat_Block = 1000066004i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_8x5_Sfloat_Block = 1000066005i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_8x6_Sfloat_Block = 1000066006i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_8x8_Sfloat_Block = 1000066007i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_10x5_Sfloat_Block = 1000066008i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_10x6_Sfloat_Block = 1000066009i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_10x8_Sfloat_Block = 1000066010i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_10x10_Sfloat_Block = 1000066011i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_12x10_Sfloat_Block = 1000066012i32,
-    #[doc = "Provided by VK_VERSION_1_3"]
-    Astc_12x12_Sfloat_Block = 1000066013i32,
-    #[doc = "Provided by VK_VERSION_1_4"]
+    #[doc = "Requires enabling the [`maintenance5`][1] feature."]
+    #[doc = ""]
+    #[doc = "[1]: vk_14::maintenance5"]
+    #[doc = "# Format information"]
+    #[doc = "- Class: `16-bit` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `2`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A1b5g5r5_Unorm_Pack16 = 1000470000i32,
-    #[doc = "Provided by VK_VERSION_1_4"]
+    #[doc = "Requires enabling the [`maintenance5`][1] feature."]
+    #[doc = ""]
+    #[doc = "[1]: vk_14::maintenance5"]
+    #[doc = "# Format information"]
+    #[doc = "- Class: `8-bit alpha` (uncompressed)"]
+    #[doc = "- Aspects: `COLOR`"]
+    #[doc = "- Texel block size `1`"]
+    #[doc = "- Texel block extent `(1, 1, 1)`"]
+    #[doc = "- Texels per block `1`"]
     A8_Unorm = 1000470001i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc1_2bpp_Unorm_Block_IMG = 1000054000i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc1_4bpp_Unorm_Block_IMG = 1000054001i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc2_2bpp_Unorm_Block_IMG = 1000054002i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc2_4bpp_Unorm_Block_IMG = 1000054003i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc1_2bpp_Srgb_Block_IMG = 1000054004i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc1_4bpp_Srgb_Block_IMG = 1000054005i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc2_2bpp_Srgb_Block_IMG = 1000054006i32,
-    #[doc = "Provided by VK_IMG_format_pvrtc"]
-    Pvrtc2_4bpp_Srgb_Block_IMG = 1000054007i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_3x3x3_Unorm_Block_EXT = 1000288000i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_3x3x3_Srgb_Block_EXT = 1000288001i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_3x3x3_Sfloat_Block_EXT = 1000288002i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x3x3_Unorm_Block_EXT = 1000288003i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x3x3_Srgb_Block_EXT = 1000288004i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x3x3_Sfloat_Block_EXT = 1000288005i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x4x3_Unorm_Block_EXT = 1000288006i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x4x3_Srgb_Block_EXT = 1000288007i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x4x3_Sfloat_Block_EXT = 1000288008i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x4x4_Unorm_Block_EXT = 1000288009i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x4x4_Srgb_Block_EXT = 1000288010i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_4x4x4_Sfloat_Block_EXT = 1000288011i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x4x4_Unorm_Block_EXT = 1000288012i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x4x4_Srgb_Block_EXT = 1000288013i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x4x4_Sfloat_Block_EXT = 1000288014i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x5x4_Unorm_Block_EXT = 1000288015i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x5x4_Srgb_Block_EXT = 1000288016i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x5x4_Sfloat_Block_EXT = 1000288017i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x5x5_Unorm_Block_EXT = 1000288018i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x5x5_Srgb_Block_EXT = 1000288019i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_5x5x5_Sfloat_Block_EXT = 1000288020i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x5x5_Unorm_Block_EXT = 1000288021i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x5x5_Srgb_Block_EXT = 1000288022i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x5x5_Sfloat_Block_EXT = 1000288023i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x6x5_Unorm_Block_EXT = 1000288024i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x6x5_Srgb_Block_EXT = 1000288025i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x6x5_Sfloat_Block_EXT = 1000288026i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x6x6_Unorm_Block_EXT = 1000288027i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x6x6_Srgb_Block_EXT = 1000288028i32,
-    #[doc = "Provided by VK_EXT_texture_compression_astc_3d"]
-    Astc_6x6x6_Sfloat_Block_EXT = 1000288029i32,
-    #[doc = "Provided by VK_ARM_tensors"]
-    R8_Bool_ARM = 1000460000i32,
-    #[doc = "Provided by VK_KHR_shader_bfloat16 with VK_ARM_tensors"]
-    R16_Sfloat_Fpencoding_Bfloat16_ARM = 1000460001i32,
-    #[doc = "Provided by VK_EXT_shader_float8 with VK_ARM_tensors"]
-    R8_Sfloat_Fpencoding_Float8e4m3_ARM = 1000460002i32,
-    #[doc = "Provided by VK_EXT_shader_float8 with VK_ARM_tensors"]
-    R8_Sfloat_Fpencoding_Float8e5m2_ARM = 1000460003i32,
-    #[doc = "Provided by VK_NV_optical_flow"]
-    R16g16_Sfixed5_NV = 1000464000i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R10x6_Uint_Pack16_ARM = 1000609000i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R10x6g10x6_Uint_2pack16_ARM = 1000609001i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R10x6g10x6b10x6a10x6_Uint_4pack16_ARM = 1000609002i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R12x4_Uint_Pack16_ARM = 1000609003i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R12x4g12x4_Uint_2pack16_ARM = 1000609004i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R12x4g12x4b12x4a12x4_Uint_4pack16_ARM = 1000609005i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R14x2_Uint_Pack16_ARM = 1000609006i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R14x2g14x2_Uint_2pack16_ARM = 1000609007i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R14x2g14x2b14x2a14x2_Uint_4pack16_ARM = 1000609008i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R14x2_Unorm_Pack16_ARM = 1000609009i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R14x2g14x2_Unorm_2pack16_ARM = 1000609010i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    R14x2g14x2b14x2a14x2_Unorm_4pack16_ARM = 1000609011i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    G14x2_B14x2r14x2_2plane_420_Unorm_3pack16_ARM = 1000609012i32,
-    #[doc = "Provided by VK_ARM_format_pack"]
-    G14x2_B14x2r14x2_2plane_422_Unorm_3pack16_ARM = 1000609013i32,
 }
 unsafe impl NoUninit for Format {}
 impl From<Format> for tuhka::vk::Format {
@@ -1260,7 +2287,7 @@ impl From<Format> for tuhka::vk::Format {
 impl Format {
     pub(super) const fn info(self) -> &'static FormatInfo {
         let raw = self as usize;
-        if raw > 185usize {
+        if raw >= 185usize {
             let mut offset = raw % 10;
             let div = raw / 10;
             offset += div % 10 * 10 + (div == 10) as usize * 10;
@@ -1270,13 +2297,37 @@ impl Format {
             let index = offset + ext;
             EXT_INFOS[index].as_ref().unwrap()
         } else {
-            CORE_INFOS[raw].as_ref().unwrap()
+            &CORE_INFOS[raw]
         }
+    }
+    #[doc = r" Returns whether using this format doesn't require enabling any"]
+    #[doc = r" features."]
+    #[inline]
+    pub const fn is_builtin(self) -> bool {
+        (self as usize) < 185usize
     }
     #[doc = r" Returns [`FormatCompatibility`] of this format."]
     #[inline]
     pub const fn compatibility(self) -> &'static FormatCompatibility {
         self.info().compatibility
+    }
+    #[doc = r" Returns whether `self` is compatible with `other`."]
+    #[doc = r""]
+    #[doc = r" Returns `true` if their [compatibility] values are equal."]
+    #[doc = r""]
+    #[doc = r" [compatibility]: Self::compatibility"]
+    #[inline]
+    pub const fn is_compatible_with(self, other: Self) -> bool {
+        self.compatibility().num == other.compatibility().num
+    }
+    #[doc = r" Returns whether `self` is size-compatible with `other`."]
+    #[doc = r""]
+    #[doc = r" Returns `true` is neither or both are alpha formats and if the sizes of their texel"]
+    #[doc = r" blocks are equal."]
+    #[inline]
+    pub const fn is_size_compatible_with(self, other: Self) -> bool {
+        self.compatibility()
+            .is_size_compatible_with(other.compatibility())
     }
     #[doc = r" Converts `self` to `str`."]
     #[inline]
@@ -1306,49 +2357,6 @@ impl Format {
     pub const fn is_compressed(&self) -> bool {
         self.info().is_compressed
     }
-    #[doc = r" Returns the number of planes in the format."]
-    #[doc = r""]
-    #[doc = r" The returned count is in the range 1..=3."]
-    #[inline]
-    pub const fn plane_count(&self) -> u32 {
-        if matches!(
-            self,
-            Self::G8_B8_R8_3plane_420_Unorm
-                | Self::G8_B8_R8_3plane_422_Unorm
-                | Self::G8_B8_R8_3plane_444_Unorm
-                | Self::G10x6_B10x6_R10x6_3plane_420_Unorm_3pack16
-                | Self::G10x6_B10x6_R10x6_3plane_422_Unorm_3pack16
-                | Self::G10x6_B10x6_R10x6_3plane_444_Unorm_3pack16
-                | Self::G12x4_B12x4_R12x4_3plane_420_Unorm_3pack16
-                | Self::G12x4_B12x4_R12x4_3plane_422_Unorm_3pack16
-                | Self::G12x4_B12x4_R12x4_3plane_444_Unorm_3pack16
-                | Self::G16_B16_R16_3plane_420_Unorm
-                | Self::G16_B16_R16_3plane_422_Unorm
-                | Self::G16_B16_R16_3plane_444_Unorm
-        ) {
-            3
-        } else if matches!(
-            self,
-            Self::G8_B8r8_2plane_420_Unorm
-                | Self::G8_B8r8_2plane_422_Unorm
-                | Self::G10x6_B10x6r10x6_2plane_420_Unorm_3pack16
-                | Self::G10x6_B10x6r10x6_2plane_422_Unorm_3pack16
-                | Self::G12x4_B12x4r12x4_2plane_420_Unorm_3pack16
-                | Self::G12x4_B12x4r12x4_2plane_422_Unorm_3pack16
-                | Self::G16_B16r16_2plane_420_Unorm
-                | Self::G16_B16r16_2plane_422_Unorm
-                | Self::G8_B8r8_2plane_444_Unorm
-                | Self::G10x6_B10x6r10x6_2plane_444_Unorm_3pack16
-                | Self::G12x4_B12x4r12x4_2plane_444_Unorm_3pack16
-                | Self::G16_B16r16_2plane_444_Unorm
-                | Self::G14x2_B14x2r14x2_2plane_420_Unorm_3pack16_ARM
-                | Self::G14x2_B14x2r14x2_2plane_422_Unorm_3pack16_ARM
-        ) {
-            2
-        } else {
-            1
-        }
-    }
     #[doc = r" Returns whether the format is a depth/stencil format."]
     #[inline]
     pub const fn is_depth_stencil(self) -> bool {
@@ -1361,1489 +2369,1489 @@ impl ::core::fmt::Display for Format {
         write!(f, "{}", self.to_str())
     }
 }
-static CORE_INFOS: [Option<FormatInfo>; 185usize] = [
-    Some(FormatInfo {
+static CORE_INFOS: [FormatInfo; 185usize] = [
+    FormatInfo {
         name: "Undefined",
         compatibility: &COMPATIBILITY[0usize],
         numeric_color: None,
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R4g4_Unorm_Pack8",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R4g4b4a4_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B4g4r4a4_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R5g6b5_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B5g6r5_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R5g5b5a1_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B5g5r5a1_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A1r5g5b5_Unorm_Pack16",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Unorm",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Snorm",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Uscaled",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Sscaled",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Uint",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Sint",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8_Srgb",
         compatibility: &COMPATIBILITY[1usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Unorm",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Snorm",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Uscaled",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Sscaled",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Uint",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Sint",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8_Srgb",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Unorm",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Snorm",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Uscaled",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Sscaled",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Uint",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Sint",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8_Srgb",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Unorm",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Snorm",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Uscaled",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Sscaled",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Uint",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Sint",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8_Srgb",
         compatibility: &COMPATIBILITY[4usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Unorm",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Snorm",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Uscaled",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Sscaled",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Uint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Sint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R8g8b8a8_Srgb",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Unorm",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Snorm",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Uscaled",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Sscaled",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Uint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Sint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B8g8r8a8_Srgb",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Unorm_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Snorm_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Uscaled_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Sscaled_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Uint_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Sint_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A8b8g8r8_Srgb_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2r10g10b10_Unorm_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2r10g10b10_Snorm_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2r10g10b10_Uscaled_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2r10g10b10_Sscaled_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2r10g10b10_Uint_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2r10g10b10_Sint_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2b10g10r10_Unorm_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2b10g10r10_Snorm_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2b10g10r10_Uscaled_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2b10g10r10_Sscaled_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2b10g10r10_Uint_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "A2b10g10r10_Sint_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Unorm",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Snorm",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Uscaled",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Sscaled",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Uint",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Sint",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16_Sfloat",
         compatibility: &COMPATIBILITY[2usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Unorm",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Snorm",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Uscaled",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Sscaled",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Uint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Sint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16_Sfloat",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Unorm",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Snorm",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Uscaled",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Sscaled",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Uint",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Sint",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16_Sfloat",
         compatibility: &COMPATIBILITY[6usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Unorm",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Snorm",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Uscaled",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Uscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Sscaled",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sscaled),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Uint",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Sint",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R16g16b16a16_Sfloat",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32_Uint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32_Sint",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32_Sfloat",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32_Uint",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32_Sint",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32_Sfloat",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32b32_Uint",
         compatibility: &COMPATIBILITY[8usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32b32_Sint",
         compatibility: &COMPATIBILITY[8usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32b32_Sfloat",
         compatibility: &COMPATIBILITY[8usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32b32a32_Uint",
         compatibility: &COMPATIBILITY[9usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32b32a32_Sint",
         compatibility: &COMPATIBILITY[9usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R32g32b32a32_Sfloat",
         compatibility: &COMPATIBILITY[9usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64_Uint",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64_Sint",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64_Sfloat",
         compatibility: &COMPATIBILITY[7usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64_Uint",
         compatibility: &COMPATIBILITY[9usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64_Sint",
         compatibility: &COMPATIBILITY[9usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64_Sfloat",
         compatibility: &COMPATIBILITY[9usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64b64_Uint",
         compatibility: &COMPATIBILITY[10usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64b64_Sint",
         compatibility: &COMPATIBILITY[10usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64b64_Sfloat",
         compatibility: &COMPATIBILITY[10usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64b64a64_Uint",
         compatibility: &COMPATIBILITY[11usize],
         numeric_color: Some(NumericFormat::Uint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64b64a64_Sint",
         compatibility: &COMPATIBILITY[11usize],
         numeric_color: Some(NumericFormat::Sint),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "R64g64b64a64_Sfloat",
         compatibility: &COMPATIBILITY[11usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "B10g11r11_Ufloat_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Ufloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "E5b9g9r9_Ufloat_Pack32",
         compatibility: &COMPATIBILITY[5usize],
         numeric_color: Some(NumericFormat::Ufloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "D16_Unorm",
         compatibility: &COMPATIBILITY[12usize],
         numeric_color: None,
         numeric_depth: Some(NumericFormat::Unorm),
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "X8_D24_Unorm_Pack32",
         compatibility: &COMPATIBILITY[13usize],
         numeric_color: None,
         numeric_depth: Some(NumericFormat::Unorm),
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "D32_Sfloat",
         compatibility: &COMPATIBILITY[14usize],
         numeric_color: None,
         numeric_depth: Some(NumericFormat::Sfloat),
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "S8_Uint",
         compatibility: &COMPATIBILITY[15usize],
-        numeric_color: Some(NumericFormat::Uint),
+        numeric_color: None,
         numeric_depth: None,
         numeric_stencil: Some(NumericFormat::Uint),
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "D16_Unorm_S8_Uint",
         compatibility: &COMPATIBILITY[16usize],
         numeric_color: None,
         numeric_depth: Some(NumericFormat::Unorm),
         numeric_stencil: Some(NumericFormat::Uint),
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "D24_Unorm_S8_Uint",
         compatibility: &COMPATIBILITY[17usize],
         numeric_color: None,
         numeric_depth: Some(NumericFormat::Unorm),
         numeric_stencil: Some(NumericFormat::Uint),
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "D32_Sfloat_S8_Uint",
         compatibility: &COMPATIBILITY[18usize],
         numeric_color: None,
-        numeric_depth: Some(NumericFormat::Sfloat),
+        numeric_depth: None,
         numeric_stencil: Some(NumericFormat::Uint),
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc1_Rgb_Unorm_Block",
         compatibility: &COMPATIBILITY[19usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc1_Rgb_Srgb_Block",
         compatibility: &COMPATIBILITY[19usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc1_Rgba_Unorm_Block",
         compatibility: &COMPATIBILITY[20usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc1_Rgba_Srgb_Block",
         compatibility: &COMPATIBILITY[20usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc2_Unorm_Block",
         compatibility: &COMPATIBILITY[21usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc2_Srgb_Block",
         compatibility: &COMPATIBILITY[21usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc3_Unorm_Block",
         compatibility: &COMPATIBILITY[22usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc3_Srgb_Block",
         compatibility: &COMPATIBILITY[22usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc4_Unorm_Block",
         compatibility: &COMPATIBILITY[23usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc4_Snorm_Block",
         compatibility: &COMPATIBILITY[23usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc5_Unorm_Block",
         compatibility: &COMPATIBILITY[24usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc5_Snorm_Block",
         compatibility: &COMPATIBILITY[24usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: false,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc6h_Ufloat_Block",
         compatibility: &COMPATIBILITY[25usize],
         numeric_color: Some(NumericFormat::Ufloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc6h_Sfloat_Block",
         compatibility: &COMPATIBILITY[25usize],
         numeric_color: Some(NumericFormat::Sfloat),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc7_Unorm_Block",
         compatibility: &COMPATIBILITY[26usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Bc7_Srgb_Block",
         compatibility: &COMPATIBILITY[26usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Etc2_R8g8b8_Unorm_Block",
         compatibility: &COMPATIBILITY[27usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Etc2_R8g8b8_Srgb_Block",
         compatibility: &COMPATIBILITY[27usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Etc2_R8g8b8a1_Unorm_Block",
         compatibility: &COMPATIBILITY[28usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Etc2_R8g8b8a1_Srgb_Block",
         compatibility: &COMPATIBILITY[28usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Etc2_R8g8b8a8_Unorm_Block",
         compatibility: &COMPATIBILITY[29usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Etc2_R8g8b8a8_Srgb_Block",
         compatibility: &COMPATIBILITY[29usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Eac_R11_Unorm_Block",
         compatibility: &COMPATIBILITY[30usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Eac_R11_Snorm_Block",
         compatibility: &COMPATIBILITY[30usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Eac_R11g11_Unorm_Block",
         compatibility: &COMPATIBILITY[31usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Eac_R11g11_Snorm_Block",
         compatibility: &COMPATIBILITY[31usize],
         numeric_color: Some(NumericFormat::Snorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_4x4_Unorm_Block",
         compatibility: &COMPATIBILITY[32usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_4x4_Srgb_Block",
         compatibility: &COMPATIBILITY[32usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_5x4_Unorm_Block",
         compatibility: &COMPATIBILITY[33usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_5x4_Srgb_Block",
         compatibility: &COMPATIBILITY[33usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_5x5_Unorm_Block",
         compatibility: &COMPATIBILITY[34usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_5x5_Srgb_Block",
         compatibility: &COMPATIBILITY[34usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_6x5_Unorm_Block",
         compatibility: &COMPATIBILITY[35usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_6x5_Srgb_Block",
         compatibility: &COMPATIBILITY[35usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_6x6_Unorm_Block",
         compatibility: &COMPATIBILITY[35usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_6x6_Srgb_Block",
         compatibility: &COMPATIBILITY[35usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_8x5_Unorm_Block",
         compatibility: &COMPATIBILITY[37usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_8x5_Srgb_Block",
         compatibility: &COMPATIBILITY[37usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_8x6_Unorm_Block",
         compatibility: &COMPATIBILITY[38usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_8x6_Srgb_Block",
         compatibility: &COMPATIBILITY[38usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_8x8_Unorm_Block",
         compatibility: &COMPATIBILITY[39usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_8x8_Srgb_Block",
         compatibility: &COMPATIBILITY[39usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x5_Unorm_Block",
         compatibility: &COMPATIBILITY[40usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x5_Srgb_Block",
         compatibility: &COMPATIBILITY[40usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x6_Unorm_Block",
         compatibility: &COMPATIBILITY[41usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x6_Srgb_Block",
         compatibility: &COMPATIBILITY[41usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x8_Unorm_Block",
         compatibility: &COMPATIBILITY[42usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x8_Srgb_Block",
         compatibility: &COMPATIBILITY[42usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x10_Unorm_Block",
         compatibility: &COMPATIBILITY[43usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_10x10_Srgb_Block",
         compatibility: &COMPATIBILITY[43usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_12x10_Unorm_Block",
         compatibility: &COMPATIBILITY[44usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_12x10_Srgb_Block",
         compatibility: &COMPATIBILITY[44usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_12x12_Unorm_Block",
         compatibility: &COMPATIBILITY[45usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
-    Some(FormatInfo {
+    },
+    FormatInfo {
         name: "Astc_12x12_Srgb_Block",
         compatibility: &COMPATIBILITY[45usize],
         numeric_color: Some(NumericFormat::Srgb),
         numeric_depth: None,
         numeric_stencil: None,
         is_compressed: true,
-    }),
+    },
 ];
-static EXT_INFOS: [Option<FormatInfo>; 623usize] = [
+static EXT_INFOS: [Option<FormatInfo>; 472usize] = [
     None,
     None,
     None,
@@ -2898,186 +3906,6 @@ static EXT_INFOS: [Option<FormatInfo>; 623usize] = [
     None,
     None,
     None,
-    Some(FormatInfo {
-        name: "Pvrtc1_2bpp_Unorm_Block_IMG",
-        compatibility: &COMPATIBILITY[76usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc1_4bpp_Unorm_Block_IMG",
-        compatibility: &COMPATIBILITY[77usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc2_2bpp_Unorm_Block_IMG",
-        compatibility: &COMPATIBILITY[78usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc2_4bpp_Unorm_Block_IMG",
-        compatibility: &COMPATIBILITY[79usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc1_2bpp_Srgb_Block_IMG",
-        compatibility: &COMPATIBILITY[76usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc1_4bpp_Srgb_Block_IMG",
-        compatibility: &COMPATIBILITY[77usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc2_2bpp_Srgb_Block_IMG",
-        compatibility: &COMPATIBILITY[78usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "Pvrtc2_4bpp_Srgb_Block_IMG",
-        compatibility: &COMPATIBILITY[79usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    None,
-    None,
-    None,
-    None,
-    Some(FormatInfo {
-        name: "Astc_4x4_Sfloat_Block",
-        compatibility: &COMPATIBILITY[32usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x4_Sfloat_Block",
-        compatibility: &COMPATIBILITY[33usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5_Sfloat_Block",
-        compatibility: &COMPATIBILITY[34usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x5_Sfloat_Block",
-        compatibility: &COMPATIBILITY[35usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6_Sfloat_Block",
-        compatibility: &COMPATIBILITY[36usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_8x5_Sfloat_Block",
-        compatibility: &COMPATIBILITY[37usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_8x6_Sfloat_Block",
-        compatibility: &COMPATIBILITY[38usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_8x8_Sfloat_Block",
-        compatibility: &COMPATIBILITY[39usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_10x5_Sfloat_Block",
-        compatibility: &COMPATIBILITY[40usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_10x6_Sfloat_Block",
-        compatibility: &COMPATIBILITY[41usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_10x8_Sfloat_Block",
-        compatibility: &COMPATIBILITY[42usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_10x10_Sfloat_Block",
-        compatibility: &COMPATIBILITY[43usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_12x10_Sfloat_Block",
-        compatibility: &COMPATIBILITY[44usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_12x12_Sfloat_Block",
-        compatibility: &COMPATIBILITY[45usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
     None,
     None,
     None,
@@ -3154,278 +3982,6 @@ static EXT_INFOS: [Option<FormatInfo>; 623usize] = [
     None,
     None,
     None,
-    Some(FormatInfo {
-        name: "G8b8g8r8_422_Unorm",
-        compatibility: &COMPATIBILITY[46usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "B8g8r8g8_422_Unorm",
-        compatibility: &COMPATIBILITY[47usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G8_B8_R8_3plane_420_Unorm",
-        compatibility: &COMPATIBILITY[48usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G8_B8r8_2plane_420_Unorm",
-        compatibility: &COMPATIBILITY[49usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G8_B8_R8_3plane_422_Unorm",
-        compatibility: &COMPATIBILITY[50usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G8_B8r8_2plane_422_Unorm",
-        compatibility: &COMPATIBILITY[51usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G8_B8_R8_3plane_444_Unorm",
-        compatibility: &COMPATIBILITY[52usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R10x6_Unorm_Pack16",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R10x6g10x6_Unorm_2pack16",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R10x6g10x6b10x6a10x6_Unorm_4pack16",
-        compatibility: &COMPATIBILITY[53usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6b10x6g10x6r10x6_422_Unorm_4pack16",
-        compatibility: &COMPATIBILITY[54usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "B10x6g10x6r10x6g10x6_422_Unorm_4pack16",
-        compatibility: &COMPATIBILITY[55usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6_B10x6_R10x6_3plane_420_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[56usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6_B10x6r10x6_2plane_420_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[57usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6_B10x6_R10x6_3plane_422_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[58usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6_B10x6r10x6_2plane_422_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[59usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6_B10x6_R10x6_3plane_444_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[60usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R12x4_Unorm_Pack16",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R12x4g12x4_Unorm_2pack16",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R12x4g12x4b12x4a12x4_Unorm_4pack16",
-        compatibility: &COMPATIBILITY[61usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4b12x4g12x4r12x4_422_Unorm_4pack16",
-        compatibility: &COMPATIBILITY[62usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "B12x4g12x4r12x4g12x4_422_Unorm_4pack16",
-        compatibility: &COMPATIBILITY[63usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4_B12x4_R12x4_3plane_420_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[64usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4_B12x4r12x4_2plane_420_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[65usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4_B12x4_R12x4_3plane_422_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[66usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4_B12x4r12x4_2plane_422_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[67usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4_B12x4_R12x4_3plane_444_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[68usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16b16g16r16_422_Unorm",
-        compatibility: &COMPATIBILITY[69usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "B16g16r16g16_422_Unorm",
-        compatibility: &COMPATIBILITY[70usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16_B16_R16_3plane_420_Unorm",
-        compatibility: &COMPATIBILITY[71usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16_B16r16_2plane_420_Unorm",
-        compatibility: &COMPATIBILITY[72usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16_B16_R16_3plane_422_Unorm",
-        compatibility: &COMPATIBILITY[73usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16_B16r16_2plane_422_Unorm",
-        compatibility: &COMPATIBILITY[74usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16_B16_R16_3plane_444_Unorm",
-        compatibility: &COMPATIBILITY[75usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
     None,
     None,
     None,
@@ -3524,290 +4080,112 @@ static EXT_INFOS: [Option<FormatInfo>; 623usize] = [
     None,
     None,
     None,
-    Some(FormatInfo {
-        name: "Astc_3x3x3_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[80usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_3x3x3_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[80usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_3x3x3_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[80usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x3x3_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[81usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x3x3_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[81usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x3x3_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[81usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x4x3_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[82usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x4x3_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[82usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x4x3_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[82usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x4x4_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[83usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x4x4_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[83usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_4x4x4_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[83usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x4x4_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[84usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x4x4_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[84usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x4x4_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[84usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5x4_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[85usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5x4_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[85usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5x4_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[85usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5x5_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[86usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5x5_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[86usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_5x5x5_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[86usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x5x5_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[87usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x5x5_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[87usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x5x5_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[87usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6x5_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[88usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6x5_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[88usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6x5_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[88usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6x6_Unorm_Block_EXT",
-        compatibility: &COMPATIBILITY[89usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6x6_Srgb_Block_EXT",
-        compatibility: &COMPATIBILITY[89usize],
-        numeric_color: Some(NumericFormat::Srgb),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    Some(FormatInfo {
-        name: "Astc_6x6x6_Sfloat_Block_EXT",
-        compatibility: &COMPATIBILITY[89usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: true,
-    }),
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    Some(FormatInfo {
-        name: "G8_B8r8_2plane_444_Unorm",
-        compatibility: &COMPATIBILITY[90usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G10x6_B10x6r10x6_2plane_444_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[91usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G12x4_B12x4r12x4_2plane_444_Unorm_3pack16",
-        compatibility: &COMPATIBILITY[92usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G16_B16r16_2plane_444_Unorm",
-        compatibility: &COMPATIBILITY[93usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
     None,
     None,
     None,
@@ -3948,46 +4326,11 @@ static EXT_INFOS: [Option<FormatInfo>; 623usize] = [
     None,
     None,
     None,
-    Some(FormatInfo {
-        name: "R8_Bool_ARM",
-        compatibility: &COMPATIBILITY[1usize],
-        numeric_color: Some(NumericFormat::Bool),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R16_Sfloat_Fpencoding_Bfloat16_ARM",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R8_Sfloat_Fpencoding_Float8e4m3_ARM",
-        compatibility: &COMPATIBILITY[1usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R8_Sfloat_Fpencoding_Float8e5m2_ARM",
-        compatibility: &COMPATIBILITY[1usize],
-        numeric_color: Some(NumericFormat::Sfloat),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R16g16_Sfixed5_NV",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Sfixed5),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
+    None,
+    None,
+    None,
+    None,
+    None,
     None,
     None,
     None,
@@ -4004,255 +4347,6 @@ static EXT_INFOS: [Option<FormatInfo>; 623usize] = [
     Some(FormatInfo {
         name: "A8_Unorm",
         compatibility: &COMPATIBILITY[3usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    Some(FormatInfo {
-        name: "R10x6_Uint_Pack16_ARM",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R10x6g10x6_Uint_2pack16_ARM",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R10x6g10x6b10x6a10x6_Uint_4pack16_ARM",
-        compatibility: &COMPATIBILITY[53usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R12x4_Uint_Pack16_ARM",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R12x4g12x4_Uint_2pack16_ARM",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R12x4g12x4b12x4a12x4_Uint_4pack16_ARM",
-        compatibility: &COMPATIBILITY[61usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R14x2_Uint_Pack16_ARM",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R14x2g14x2_Uint_2pack16_ARM",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R14x2g14x2b14x2a14x2_Uint_4pack16_ARM",
-        compatibility: &COMPATIBILITY[94usize],
-        numeric_color: Some(NumericFormat::Uint),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R14x2_Unorm_Pack16_ARM",
-        compatibility: &COMPATIBILITY[2usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R14x2g14x2_Unorm_2pack16_ARM",
-        compatibility: &COMPATIBILITY[5usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "R14x2g14x2b14x2a14x2_Unorm_4pack16_ARM",
-        compatibility: &COMPATIBILITY[94usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G14x2_B14x2r14x2_2plane_420_Unorm_3pack16_ARM",
-        compatibility: &COMPATIBILITY[95usize],
-        numeric_color: Some(NumericFormat::Unorm),
-        numeric_depth: None,
-        numeric_stencil: None,
-        is_compressed: false,
-    }),
-    Some(FormatInfo {
-        name: "G14x2_B14x2r14x2_2plane_422_Unorm_3pack16_ARM",
-        compatibility: &COMPATIBILITY[96usize],
         numeric_color: Some(NumericFormat::Unorm),
         numeric_depth: None,
         numeric_stencil: None,

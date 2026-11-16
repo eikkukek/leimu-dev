@@ -1,4 +1,7 @@
-use core::ops::Range;
+use core::{
+    ops::{Range, RangeBounds, Bound},
+    num::NonZeroU32,
+};
 
 use bytemuck::{ByteEq, ByteHash, NoUninit, Zeroable};
 
@@ -94,19 +97,56 @@ impl SortByKey for VertexInputAttributeDescription {
         &self.location
     }
 }
+/// Specifies limits on depth and stencil attachment [resolve modes].
+///
+/// [resolve modes]: ResolveMode
+#[derive(Clone, Copy)]
+pub struct GpuDepthStencilResolveLimits {
+    /// A bitmask of supported depth resolve modes.
+    pub supported_depth_resolve_modes: ResolveModeFlags,
+    /// A bitmask of supported stencil resolve modes.
+    pub supported_stencil_resolve_modes: ResolveModeFlags,
+    /// Specifies whether specifying a resolve [`ImageView`] for only one of depth or stencil attachments
+    /// is allowed.
+    ///
+    /// This is guaranteed to be supported if [`independent_resolve`] is supported.
+    ///
+    /// [`independent_resolve`]: Self::independent_resolve
+    pub independent_resolve_none: bool,
+    /// Specifies whether depth and stencil attachments **can** have different resolve modes when a
+    /// resolve [`ImageView`] is specified for both.
+    pub independent_resolve: bool,
+}
 /// Limits of a GPU.
-#[derive(Clone, Copy, Zeroable)]
+#[derive(Clone, Copy)]
 pub struct GpuLimits {
     pub(crate) vk_10: vk::PhysicalDeviceLimits,
+    pub(crate) depth_stencil_resolve_limits: GpuDepthStencilResolveLimits,
     pub(crate) max_buffer_size: DeviceSize,
+    pub(crate) max_multiview_count: u32,
 }
-
 impl GpuLimits {
 
     /// The maximum size a [`Buffer`] **can** be.
     #[inline]
     pub fn max_buffer_size(&self) -> DeviceSize {
         self.max_buffer_size
+    }
+
+    /// This value - 1 specifies the maximum index that the most significant bit of [`RenderLayers::Mask`] **can**
+    /// have.
+    #[inline]
+    pub fn max_multiview_count(&self) -> u32 {
+        self.max_multiview_count
+    }
+
+    /// Returns [`GpuDepthStencilResolveLimits`] specifying limits on depth and stencil attachment
+    /// [resolve modes].
+    ///
+    /// [resolve modes]: ResolveMode
+    #[inline]
+    pub fn depth_stencil_resolve_limits(&self) -> &GpuDepthStencilResolveLimits {
+        &self.depth_stencil_resolve_limits
     }
 
     /// Largest width guaranteed to be supported by 1D images.
@@ -612,26 +652,18 @@ impl GpuLimits {
     }
    
     /// The maximum width for a framebuffer.
-    ///
-    /// The `width` + the x value of `offset` of `RenderArea` in `RenderingInfo`
-    /// **must** be less than or equal to this value.
     #[inline]
     pub fn max_framebuffer_width(&self) -> u32 {
         self.vk_10.max_framebuffer_width
     }
     
     /// The maximum height for a framebuffer.
-    ///
-    /// The `height` + the y value of `offset` of `RenderArea` in `RenderingInfo`
-    /// **must** be less than or equal to this value.
     #[inline]
     pub fn max_framebuffer_height(&self) -> u32 {
         self.vk_10.max_framebuffer_height
     }
    
     /// The maximum layer count for a layered framebuffer.
-    ///
-    /// The `layer_count` in `RenderingInfo` **must** be less than or equal to this value.
     #[inline]
     pub fn max_framebuffer_layers(&self) -> u32 {
         self.vk_10.max_framebuffer_layers
@@ -640,36 +672,31 @@ impl GpuLimits {
     /// A bitmask of [`sample counts`][1] indicating the color sample counts that are supported
     /// for all framebuffer color attachments with floating- or fixed-point formats.
     ///
-    /// The `sample_count` in `RenderingInfo` **must** be contained in this value.
-    ///
     /// [1]: SampleCounts
     #[inline]
-    pub fn framebuffer_color_sample_counts(&self) -> SampleCounts {
+    pub fn framebuffer_color_samples(&self) -> SampleCounts {
         SampleCounts::from_bits_truncate(self.vk_10.framebuffer_color_sample_counts.as_raw())
     }
 
     /// A bitmask of [`sample counts`][1] indicating the supported depth sample counts for all
     /// framebuffer depth/stencil attachments, when the format includes a depth component.
     ///
-    /// The `sample_count` in `RenderingInfo` **must** be contained in this value.
-    ///
     /// [1]: SampleCounts
     #[inline]
-    pub fn framebuffer_depth_sample_counts(&self) -> SampleCounts {
+    pub fn framebuffer_depth_samples(&self) -> SampleCounts {
         SampleCounts::from_bits_truncate(self.vk_10.framebuffer_depth_sample_counts.as_raw())
     }
    
     /// A bitmask of [`sample counts`][1] indicating the supported stencil sample counts for all
     /// framebuffer depth/stencil attachments, when the format includes a stencil component.
     ///
-    /// The `sample_count` in `RenderingInfo` **must** be contained in this value.
-    ///
     /// [1]: SampleCounts
     #[inline]
-    pub fn framebuffer_stencil_sample_counts(&self) -> SampleCounts {
+    pub fn framebuffer_stencil_samples(&self) -> SampleCounts {
         SampleCounts::from_bits_truncate(self.vk_10.framebuffer_stencil_sample_counts.as_raw())
     }
-   
+  
+    /* unused for now
     /// A bitmask of [`sample counts`][1] indicating the supported sample counts for a subpass
     /// which uses no attachments.
     ///
@@ -678,11 +705,11 @@ impl GpuLimits {
     pub fn framebuffer_no_attachments_sample_counts(&self) -> SampleCounts {
         SampleCounts::from_bits_truncate(self.vk_10.framebuffer_no_attachments_sample_counts.as_raw())
     }
+    */
    
-    /// The maximum number of color attachments that can be used by a subpass in a render pass.
+    /// The maximum number of color attachments that can be used in a [render pass]. 
     ///
-    /// The color attachment count when rendering **must** be less than or equal to this
-    /// value.
+    /// [render pass]: CommandBufferRecorder::render_pass
     #[inline]
     pub fn max_color_attachments(&self) -> u32 {
         self.vk_10.max_color_attachments
@@ -885,5 +912,141 @@ impl ColorBlendEquation {
         self.dst_color_blend_factor.uses_second_source() ||
         self.src_alpha_blend_factor.uses_second_source() ||
         self.dst_alpha_blend_factor.uses_second_source()
+    }
+}
+/// Specifies a range of image aspects/levels/layers.
+///
+/// The default value of this structure specifies a range that spans the entire image.
+#[repr(C)]
+#[derive(Default, Clone, Copy, NoUninit, Zeroable, ByteEq, ByteHash)]
+pub struct ImageSubresourceRange {
+    /// A bitmask of image aspects.
+    ///
+    /// The default value is [`ImageAspects::DERIVE`], which derives all the aspects of an image for
+    /// this range.
+    pub aspects: ImageAspects,
+    /// Specifies that first mip level of this range.
+    ///
+    /// # Valid usage
+    /// - This **must** be less than the [number of levels] in the image.
+    ///
+    /// [number of levels]: ImageAttributes::mip_levels
+    pub base_mip_level: u32,
+    /// Specifies that number of mip levels from [`base_mip_level`][1] included in this range.
+    ///
+    /// A `None` value specifies the rest of the available mip levels.
+    ///
+    /// # Valid usage
+    /// - If this is `Some`, `base_mip_level + level_count` **must** be less than or equal to the
+    ///   [number of levels] in the image.
+    ///
+    /// [1]: Self::base_mip_level
+    /// [number of levels]: ImageAttributes::mip_levels
+    pub level_count: Option<NonZeroU32>,
+    /// Specifies the first array layer of this range.
+    ///
+    /// # Valid usage
+    /// - If the image's wasn't created with the [`ImageViewCompatibility::DIM3_SLICE_AS_ARRAY`] and
+    ///   if the range does not specify the range of a [`Dim2`] or [`Dim2Array`] image view, this
+    ///   **must** be less than the [number of layers] in the image, or otherwise
+    /// - this **must** be less than the computed depth of the image's [extent] at
+    ///   [`base_mip_level`].
+    ///
+    /// [number of layers]: ImageAttributes::array_layers
+    /// [extent]: ImageAttributes::extent
+    /// [`base_mip_level`]: Self::base_mip_level
+    pub base_array_layer: u32,
+    /// Specifies that number of array layers from [`base_array_layer`][1] included in this range.
+    ///
+    /// A `None` value specifies the rest of the available layers (or depth).
+    ///
+    /// # Valid usage
+    /// - If this is `Some` and:
+    ///   - if the image's wasn't created with the [`ImageViewCompatibility::DIM3_SLICE_AS_ARRAY`] and
+    ///     if the range does not specify the range of a [`Dim2`] or [`Dim2Array`] image view,
+    ///     `base_array_layer + layer_count` **must** be less than or equal to the
+    ///     [number of layers] in the image, or otherwise
+    ///   - `base_array_layer + layer_count` **must** be less than or equal to the computed depth of
+    ///     the image's [extent] at [`base_mip_level`].
+    ///
+    /// [number of layers]: ImageAttributes::array_layers
+    /// [extent]: ImageAttributes::extent
+    /// [`base_mip_level`]: Self::base_mip_level
+    pub layer_count: Option<NonZeroU32>,
+}
+impl ImageSubresourceRange {
+
+    /// Copies `self` and sets `aspects`.
+    #[inline]
+    pub fn aspects(mut self, aspects: ImageAspects) -> Self {
+        self.aspects = aspects;
+        self
+    }
+    /// Copies `self` and sets `base_mip_level` and `level_count` based on a range.
+    #[inline]
+    pub fn levels(mut self, levels: impl RangeBounds<u32>) -> Self {
+        let start = match levels.start_bound()
+        {
+            Bound::Included(&inc) => inc,
+            Bound::Excluded(&ex) => ex,
+            Bound::Unbounded => 0,
+        };
+        let count = match levels.end_bound() {
+            Bound::Included(&inc) => NonZeroU32::new(inc + 1 - start),
+            Bound::Excluded(&ex) => NonZeroU32::new(ex - start),
+            Bound::Unbounded => None,
+        };
+        self.base_mip_level = start;
+        self.level_count = count;
+        self
+    }
+    /// Copies `self` and sets `base_array_layer` and `layer_count` based on a range.
+    #[inline]
+    pub fn layers(mut self, layers: impl RangeBounds<u32>) -> Self {
+        let start = match layers.start_bound()
+        {
+            Bound::Included(&inc) => inc,
+            Bound::Excluded(&ex) => ex,
+            Bound::Unbounded => 0,
+        };
+        let count = match layers.end_bound() {
+            Bound::Included(&inc) => NonZeroU32::new(inc + 1 - start),
+            Bound::Excluded(&ex) => NonZeroU32::new(ex - start),
+            Bound::Unbounded => None,
+        };
+        self.base_array_layer = start;
+        self.layer_count = count;
+        self
+    }
+    /// Copies `self` and sets `layer_count`.
+    ///
+    /// `0` indicates remaining layers from `base_array_layers`.
+    #[inline]
+    pub fn layer_count(mut self, count: u32) -> Self {
+        self.layer_count = count.try_into().ok();
+        self
+    }
+}
+/// Specifies the component mapping of an [`ImageView`].
+///
+/// The default value is [`Identity`] for all fields.
+///
+/// [`Identity`]: ComponentSwizzle::Identity
+#[repr(C)]
+#[derive(Default, Clone, Copy, NoUninit, Zeroable, ByteEq, ByteHash)]
+pub struct ComponentMapping {
+    /// Specifies the component value placed in the `R` component.
+    pub r: ComponentSwizzle,
+    /// Specifies the component value placed in the `G` component.
+    pub g: ComponentSwizzle,
+    /// Specifies the component value placed in the `B` component.
+    pub b: ComponentSwizzle,
+    /// Specifies the component value placed in the `A` component.
+    pub a: ComponentSwizzle,
+}
+impl From<ComponentMapping> for vk::ComponentMapping {
+    #[inline]
+    fn from(value: ComponentMapping) -> Self {
+        bytemuck::cast(value)
     }
 }

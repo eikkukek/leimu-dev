@@ -50,23 +50,24 @@ macro_rules! core_features {
             use crate::features::*;
             use super::Inner;
             /// The name of this feature.
-            pub const NAME: FeatureName<bool> = FeatureName::new(stringify!($field));
+            pub const NAME: FeatureName<()> = FeatureName::new(stringify!($field));
 
             /// Creates the [`DeviceFeature`]
-            pub fn new(enable: bool) -> DeviceFeature {
+            pub fn new() -> DeviceFeature {
                 super::feature(
                     Inner::new(move |query_support, features| {
                         if query_support {
                             if features.$field == 0 {
                                 Err(err!("{}", concat!(
-                                    "missing device feature ", stringify!($field)
+                                    "device feature `", stringify!($field),
+                                    "` not supported"
                                 )))?
                             } else {
                                 Ok(None)
                             }
                         } else {
-                            *features = features.$field(enable);
-                            Ok(Some(FeatureData::new(enable)))
+                            *features = features.$field(true);
+                            Ok(Some(FeatureData::empty()))
                         }
                     }),
                     NAME.name,
@@ -84,23 +85,24 @@ macro_rules! core_features {
             use crate::features::*;
             use super::Inner;
             /// The name of this feature.
-            pub const NAME: FeatureName<bool> = FeatureName::new(stringify!($name));
+            pub const NAME: FeatureName<()> = FeatureName::new(stringify!($name));
 
             /// Creates the [`DeviceFeature`]
-            pub fn new(enable: bool) -> DeviceFeature {
+            pub fn new() -> DeviceFeature {
                 super::feature(
                     Inner::new(move |query_support, features| {
                         if query_support {
                             if features.$field == 0 {
                                 Err(err!("{}", concat!(
-                                    "missing device feature ", stringify!($field)
+                                    "device feature `", stringify!($field),
+                                    "` not supported",
                                 )))?
                             } else {
                                 Ok(None)
                             }
                         } else {
-                            *features = features.$field(enable);
-                            Ok(Some(FeatureData::new(enable)))
+                            *features = features.$field(true);
+                            Ok(Some(FeatureData::empty()))
                         }
                     }),
                     NAME.name,
@@ -339,7 +341,7 @@ pub mod vk_10 {
         variable_multisample_rate,
         /// Specifies whether a secondary command buffer **may** be executed while a query is active.
         inherited_queries,
-    );
+    ); 
 }
 
 /// Core Vulkan 1.1 [`features`][Features].
@@ -412,11 +414,90 @@ pub mod vk_11 {
         variable_pointers,
         /// Specifies whether protected memory is supported.
         protected_memory,
-        /// Specifies whether sampler Ycbcr conversion is supported.
-        sampler_ycbcr_conversion,
         /// Specifies whether SPIR-V `DrawParameters` capability is supported.
         shader_draw_parameters,
     );
+
+    /* not supported for now
+    /// Specifies whether sampler YCbCr conversion is supported.
+    pub mod sampler_ycbcr_conversion {
+
+        use crate::features::*;
+
+        /// The name of this feature.
+        pub const NAME: FeatureName<()> = FeatureName::new(stringify!($field));
+
+        /// Creates the [`DeviceFeature`]
+        pub fn new() -> DeviceFeature {
+            /*super::feature(
+                Inner::new(move |query_support, features| {
+                    if query_support {
+                        if features.sampler_ycbcr_conversion == 0 {
+
+                        } else {
+                            Ok(None)
+                        }
+                    } else {
+                        *features = features.sampler_ycbcr_conversion(enable);
+                        Ok(Some(FeatureData::new(enable)))
+                    }
+                }),
+                NAME.name,
+            )*/
+            feature_ext(
+                |ctx| {
+                    if ctx.vulkan_11_features().sampler_ycbcr_conversion == 0 {
+                        Err(err!("device feature `sampler_ycbcr_conversion` not supported"))
+                    } else {
+                        Ok(())
+                    }
+                }, 
+                move |ctx| {
+                    ctx.set_features(|features: vk::PhysicalDeviceVulkan11Features|
+                        features.sampler_ycbcr_conversion(true)
+                    );
+                    ctx.add_supported_enums([
+                        Format::G8b8g8r8_422_Unorm,
+                        Format::B8g8r8g8_422_Unorm,
+                        Format::G8_B8_R8_3plane_420_Unorm,
+                        Format::G8_B8r8_2plane_420_Unorm,
+                        Format::G8_B8_R8_3plane_422_Unorm,
+                        Format::G8_B8r8_2plane_422_Unorm,
+                        Format::G8_B8_R8_3plane_444_Unorm,
+                        Format::R10x6_Unorm_Pack16,
+                        Format::R10x6g10x6_Unorm_2pack16,
+                        Format::R10x6g10x6b10x6a10x6_Unorm_4pack16,
+                        Format::G10x6b10x6g10x6r10x6_422_Unorm_4pack16,
+                        Format::B10x6g10x6r10x6g10x6_422_Unorm_4pack16,
+                        Format::G10x6_B10x6_R10x6_3plane_420_Unorm_3pack16,
+                        Format::G10x6_B10x6r10x6_2plane_420_Unorm_3pack16,
+                        Format::G10x6_B10x6_R10x6_3plane_422_Unorm_3pack16,
+                        Format::G10x6_B10x6r10x6_2plane_422_Unorm_3pack16,
+                        Format::G10x6_B10x6_R10x6_3plane_444_Unorm_3pack16,
+                        Format::R12x4_Unorm_Pack16,
+                        Format::R12x4g12x4_Unorm_2pack16,
+                        Format::R12x4g12x4b12x4a12x4_Unorm_4pack16,
+                        Format::G12x4b12x4g12x4r12x4_422_Unorm_4pack16,
+                        Format::B12x4g12x4r12x4g12x4_422_Unorm_4pack16,
+                        Format::G12x4_B12x4_R12x4_3plane_420_Unorm_3pack16,
+                        Format::G12x4_B12x4r12x4_2plane_420_Unorm_3pack16,
+                        Format::G12x4_B12x4_R12x4_3plane_422_Unorm_3pack16,
+                        Format::G12x4_B12x4r12x4_2plane_422_Unorm_3pack16,
+                        Format::G12x4_B12x4_R12x4_3plane_444_Unorm_3pack16,
+                        Format::G16b16g16r16_422_Unorm,
+                        Format::B16g16r16g16_422_Unorm,
+                        Format::G16_B16_R16_3plane_420_Unorm,
+                        Format::G16_B16r16_2plane_420_Unorm,
+                        Format::G16_B16_R16_3plane_422_Unorm,
+                        Format::G16_B16r16_2plane_422_Unorm,
+                        Format::G16_B16_R16_3plane_444_Unorm,
+                    ]);
+                    FeatureData::empty()
+                },
+                NAME,
+            ) 
+        }
+    }*/
 }
 
 /// Core Vulkan 1.2 [`features`][Features].
@@ -671,12 +752,18 @@ pub mod vk_13 {
         use crate::features::*;
 
         /// The name of this feature.
-        pub const NAME: FeatureName<bool> = FeatureName::new(stringify!(robust_image_access));
+        ///
+        /// The data associated is a boolean value specifying whether this feature is enabled for
+        /// all pipelines.
+        pub const NAME: FeatureName<bool> = FeatureName::new("robust_image_access");
 
         /// Creates the [`DeviceFeature`]..
+        ///
+        /// # Parameters
+        /// `enable`: whether to enable this feature for all pipelines.
         pub fn new(enable: bool) -> DeviceFeature {
             use tuhka::ext;
-            unsafe { feature_ext(
+            feature_ext(
                 move |ctx| -> Result<(), Error> {
                     if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                         ctx.add_required_extension(ext::image_robustness::NAME)?;
@@ -685,7 +772,7 @@ pub mod vk_13 {
                         ::default();
                     ctx.get_physical_device_features(&mut features);
                     if features.robust_image_access == 0 {
-                        Err(err!("robust_image_access not supported"))
+                        Err(err!("`robust_image_access` not supported"))
                     } else {
                         Ok(())
                     }
@@ -705,7 +792,7 @@ pub mod vk_13 {
                     FeatureData::new(enable)
                 },
                 NAME,
-            ) }
+            )
         }
     }
 
@@ -767,7 +854,7 @@ pub mod vk_13 {
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(inline_uniform_block)); 
+        pub const NAME: FeatureName<Data> = FeatureName::new("inline_uniform_block"); 
 
         /// A builder for enabling [`inline_uniform_block`][self] features.
         #[derive(Default, Clone, Copy)]
@@ -800,7 +887,7 @@ pub mod vk_13 {
             /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
                 use tuhka::ext;
-                unsafe { feature_ext(
+                feature_ext(
                     move |ctx| -> Result<(), Error> {
                         if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                             ctx.add_required_extension(ext::inline_uniform_block::NAME)?;
@@ -869,7 +956,7 @@ pub mod vk_13 {
                         }
                     },
                     NAME,
-                ) }
+                )
             }
         }
     }
@@ -885,7 +972,7 @@ pub mod vk_13 {
         use crate::features::*;
 
         /// The name of this feature.
-        pub const NAME: FeatureName<bool> = FeatureName::new(stringify!(shader_terminate_invocation));
+        pub const NAME: FeatureName<bool> = FeatureName::new("shader_terminate_invocation");
 
         /// Creates the [`DeviceFeature`].
         pub(crate) fn new() -> DeviceFeature {
@@ -893,7 +980,7 @@ pub mod vk_13 {
             use tuhka::khr;
             let check = Arc::new(AtomicBool::new(false));
             let enable = check.clone();
-            unsafe { feature_ext(
+            feature_ext(
                 move |ctx| -> Result<(), Error> {
                     let mut supported = false;
                     if ctx.api_version() < VULKAN_API_VERSION_1_3 {
@@ -927,14 +1014,14 @@ pub mod vk_13 {
                     }
                 },
                 NAME,
-            ) }
+            )
         }
     }
 
     pub(crate) fn synchronization2() -> DeviceFeature {
         use tuhka::khr;
         const NAME: FeatureName<()> = FeatureName::new("synchronization2");
-        unsafe { feature_ext(
+        feature_ext(
             move |ctx| -> Result<(), Error> {
                 if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                     ctx.add_required_extension(khr::synchronization2::NAME)?;
@@ -963,7 +1050,7 @@ pub mod vk_13 {
                 FeatureData::empty()
             },
             NAME,
-        ) }
+        )
     } 
 
     pub mod shader_zero_initialize_workgroup_memory {
@@ -979,12 +1066,12 @@ pub mod vk_13 {
         use crate::features::*;
 
         /// The name of this feature.
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(shader_zero_initialize_workgroup_memory));
+        pub const NAME: FeatureName<()> = FeatureName::new("shader_zero_initialize_workgroup_memory");
 
         /// Creates the [`DeviceFeature`].
         pub fn new() -> DeviceFeature {
             use tuhka::khr;
-            unsafe { feature_ext(
+            feature_ext(
                 move |ctx| -> Result<(), Error> {
                     if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                         ctx.add_required_extension(khr::zero_initialize_workgroup_memory::NAME)?;
@@ -1013,14 +1100,14 @@ pub mod vk_13 {
                     FeatureData::empty()
                 },
                 NAME,
-            ) }
+            )
     }
     } 
 
     pub(crate) fn dynamic_rendering() -> DeviceFeature {
         use tuhka::khr;
         const NAME: FeatureName<()> = FeatureName::new("dynamic_rendering");
-        unsafe { feature_ext(
+        feature_ext(
             move |ctx| -> Result<(), Error> {
                 if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                     ctx.add_required_extension(khr::dynamic_rendering::NAME)?;
@@ -1049,7 +1136,7 @@ pub mod vk_13 {
                 FeatureData::empty()
             },
             NAME,
-        ) }
+        )
     }
 
     pub mod shader_integer_dot_product {
@@ -1066,12 +1153,12 @@ pub mod vk_13 {
         use crate::features::*;
 
         /// The name of this feature.
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(shader_integer_dot_product));
+        pub const NAME: FeatureName<()> = FeatureName::new("shader_integer_dot_product");
 
         /// Creates the [`DeviceFeature`].
         pub fn new() -> DeviceFeature {
             use tuhka::khr;
-            unsafe { feature_ext(
+            feature_ext(
                 move |ctx| -> Result<(), Error> {
                     if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                         ctx.add_required_extension(khr::shader_integer_dot_product::NAME)?;
@@ -1100,7 +1187,7 @@ pub mod vk_13 {
                     FeatureData::empty()
                 },
                 NAME,
-            ) }
+            )
         }
     }
 
@@ -1116,7 +1203,7 @@ pub mod vk_13 {
 
         pub(crate) fn new() -> DeviceFeature {
             use tuhka::khr;
-            unsafe { feature_ext(
+            feature_ext(
                 move |ctx| -> Result<(), Error> {
                     if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                         ctx.add_required_extension(khr::maintenance4::NAME)?;
@@ -1148,14 +1235,14 @@ pub mod vk_13 {
                     FeatureData::empty()
                 },
                 NAME,
-            ) }
+            )
         }
     }
 
     pub(crate) fn copy_commands2() -> DeviceFeature {
         use tuhka::khr;
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(copy_commands2));
-        unsafe { feature_ext(
+        pub const NAME: FeatureName<()> = FeatureName::new("copy_commands2");
+        feature_ext(
             |ctx| {
                 if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                     ctx.add_required_extension(khr::copy_commands2::NAME)?;
@@ -1166,13 +1253,13 @@ pub mod vk_13 {
                 FeatureData::empty()
             },
             NAME,
-        ) }
+        )
     }
 
     pub(crate) fn extended_dynamic_state() -> DeviceFeature {
         use tuhka::ext;
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(extended_dynamic_state));
-        unsafe { feature_ext(
+        pub const NAME: FeatureName<()> = FeatureName::new("extended_dynamic_state");
+        feature_ext(
             |ctx| {
                 if ctx.api_version() < VULKAN_API_VERSION_1_3 {
                     ctx.add_required_extension(ext::extended_dynamic_state::NAME)?;
@@ -1219,7 +1306,7 @@ pub mod vk_13 {
                 FeatureData::empty()
             },
             NAME,
-        ) }
+        )
     }
 
     pub mod extended_dynamic_state2 {
@@ -1286,13 +1373,13 @@ pub mod vk_13 {
             }
 
             /// [`extended_dynamic_state2`][self] [`device`][Device].
-            pub fn functions(&self, device: &crate::Device) -> &Device {
+            pub(crate) fn functions(&self, device: &crate::Device) -> &Device {
                 self.1.get_or_init(|| Device::new(device.functions()))
             }
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(extended_dynamic_state2));
+        pub const NAME: FeatureName<Data> = FeatureName::new("extended_dynamic_state2");
 
         /// Creates [`Builder`].
         pub fn builder() -> Builder {
@@ -1338,7 +1425,7 @@ pub mod vk_13 {
         
             /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
-                unsafe { feature_ext(
+                feature_ext(
                     move |ctx| {
                         if ctx.api_version() < VULKAN_API_VERSION_1_3 ||
                             self.logic_op ||
@@ -1349,20 +1436,20 @@ pub mod vk_13 {
                                 ::default();
                             if self.extended_dynamic_state2 && vk_features.extended_dynamic_state2 == 0 {
                                 Err(err!(
-                                    "extended_dynamic_state2 feature not supported"
+                                    "`extended_dynamic_state2` feature not supported"
                                 ))?
                             }
                             if self.logic_op &&
                                     vk_features.extended_dynamic_state2_logic_op == 0 {
                                 Err(err!(
-                                    "extended_dynamic_state2_logic_op feature not supported"
+                                    "`extended_dynamic_state2_logic_op` feature not supported"
                                 ))?
                             }
                             if self.patch_control_points &&
                                 vk_features.extended_dynamic_state2_patch_control_points == 0
                             {
                                 Err(err!(
-                                    "extended_dynamic_state2_patch_control_points feature not supported"
+                                    "`extended_dynamic_state2_patch_control_points` feature not supported"
                                 ))?
                             }
                         }
@@ -1401,8 +1488,44 @@ pub mod vk_13 {
                         }, OnceLock::new()))
                     },
                     NAME,
-                ) }
+                )
             }
+        }
+    }
+
+    pub mod _4444_formats {
+        //! Allows the use of the [`A4r4g4b4_Unorm_Pack16`][1] and [`A4b4g4r4_Unorm_Pack16`][2]
+        //! formats.
+        //!
+        //! [1]: Format::A4r4g4b4_Unorm_Pack16
+        //! [2]: Format::A4b4g4r4_Unorm_Pack16
+
+        use tuhka::ext;
+
+        use crate::features::*;
+    
+        /// The name of this feature.
+        pub const NAME: FeatureName<()> = FeatureName::new("extended_dynamic_state");
+
+        /// Creates the [`DeviceFeature`].
+        pub fn new() -> DeviceFeature {
+            feature_ext(
+                |ctx| {
+                    if ctx.api_version() < VULKAN_API_VERSION_1_3 {
+                        ctx.add_required_extension(ext::_4444_formats::NAME)
+                    } else {
+                        Ok(())
+                    }
+                },
+                |ctx| {
+                    ctx.add_supported_enums([
+                        Format::A4r4g4b4_Unorm_Pack16,
+                        Format::A4b4g4r4_Unorm_Pack16,
+                    ]);
+                    FeatureData::new(())
+                },
+                NAME,
+            )
         }
     }
 }
@@ -1482,7 +1605,7 @@ pub mod vk_14 {
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(line_rasterization));
+        pub const NAME: FeatureName<Data> = FeatureName::new("line_rasterization");
 
         /// Creates [`Builder`].
         #[inline]
@@ -1546,101 +1669,99 @@ pub mod vk_14 {
             /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
                 use tuhka::khr;
-                unsafe {
-                    feature_ext(
-                        move |ctx| {
-                            if ctx.api_version() < VULKAN_API_VERSION_1_4 {
-                                ctx.add_required_extension(khr::line_rasterization::NAME)?;
-                            }
-                            let mut supported = vk::PhysicalDeviceLineRasterizationFeatures
-                                ::default();
-                            ctx.get_physical_device_features(&mut supported);
-                            if self.rectangular_lines &&
-                                supported.rectangular_lines == 0
-                            {
-                                Err(err!(
-                                    "rectangular_lines not supported"
-                                ))?
-                            }
-                            if self.bresenham_lines &&
-                                supported.bresenham_lines == 0
-                            {
-                                Err(err!(
-                                    "bresenham_lines not supported"
-                                ))?
-                            }
-                            if self.smooth_lines &&
-                                supported.smooth_lines == 0
-                            {
-                                Err(err!(
-                                    "smooth_lines not supported"
-                                ))?
-                            }
-                            if self.stippled_rectangular_lines &&
-                                supported.stippled_rectangular_lines == 0
-                            {
-                                Err(err!(
-                                    "stippled_rectangular_lines not supported"
-                                ))?
-                            }
-                            if self.stippled_bresenham_lines &&
-                                supported.stippled_bresenham_lines == 0
-                            {
-                                Err(err!(
-                                    "stippled_bresenham_lines not supported"
-                                ))?
-                            }
-                            if self.stippled_smooth_lines &&
-                                supported.stippled_smooth_lines == 0
-                            {
-                                Err(err!(
-                                    "stippled_smooth_lines not supported"
-                                ))?
-                            }
-                            Ok(())
-                        },
-                        move |ctx| {
-                            if ctx.api_version() < VULKAN_API_VERSION_1_4 {
-                                ctx.set_features(
-                                    |enable: vk::PhysicalDeviceVulkan14Features|
-                                        enable.rectangular_lines(self.rectangular_lines)
-                                            .bresenham_lines(self.bresenham_lines)
-                                            .smooth_lines(self.smooth_lines)
-                                            .stippled_rectangular_lines(self.stippled_rectangular_lines)
-                                            .stippled_bresenham_lines(self.stippled_bresenham_lines)
-                                            .stippled_smooth_lines(self.stippled_smooth_lines)
-                                );
-                            } else {
-                                ctx.set_features(
-                                    |enable: vk::PhysicalDeviceLineRasterizationFeatures|
-                                        enable.rectangular_lines(self.rectangular_lines)
-                                            .bresenham_lines(self.bresenham_lines)
-                                            .smooth_lines(self.smooth_lines)
-                                            .stippled_rectangular_lines(self.stippled_rectangular_lines)
-                                            .stippled_bresenham_lines(self.stippled_bresenham_lines)
-                                            .stippled_smooth_lines(self.stippled_smooth_lines)
-                                );
-                            }
-                            let mut properties = vk::PhysicalDeviceLineRasterizationProperties
-                                ::default();
-                            ctx.get_physical_device_properties(&mut properties);
-                            FeatureData::new(Data(
-                                Features {
-                                    rectangular_lines: self.rectangular_lines,
-                                    bresenham_lines: self.bresenham_lines,
-                                    smooth_lines: self.smooth_lines,
-                                    stippled_rectangular_lines: self.stippled_rectangular_lines,
-                                    stippled_bresenham_lines: self.stippled_bresenham_lines,
-                                    stippled_smooth_lines: self.stippled_smooth_lines
-                                },
-                                Properties {
-                                    line_sub_pixel_precision_bits: properties.line_sub_pixel_precision_bits
-                                },
-                            ))
-                        },
-                        NAME,
-                    )
-                }
+                feature_ext(
+                    move |ctx| {
+                        if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                            ctx.add_required_extension(khr::line_rasterization::NAME)?;
+                        }
+                        let mut supported = vk::PhysicalDeviceLineRasterizationFeatures
+                            ::default();
+                        ctx.get_physical_device_features(&mut supported);
+                        if self.rectangular_lines &&
+                            supported.rectangular_lines == 0
+                        {
+                            Err(err!(
+                                "rectangular_lines not supported"
+                            ))?
+                        }
+                        if self.bresenham_lines &&
+                            supported.bresenham_lines == 0
+                        {
+                            Err(err!(
+                                "bresenham_lines not supported"
+                            ))?
+                        }
+                        if self.smooth_lines &&
+                            supported.smooth_lines == 0
+                        {
+                            Err(err!(
+                                "smooth_lines not supported"
+                            ))?
+                        }
+                        if self.stippled_rectangular_lines &&
+                            supported.stippled_rectangular_lines == 0
+                        {
+                            Err(err!(
+                                "stippled_rectangular_lines not supported"
+                            ))?
+                        }
+                        if self.stippled_bresenham_lines &&
+                            supported.stippled_bresenham_lines == 0
+                        {
+                            Err(err!(
+                                "stippled_bresenham_lines not supported"
+                            ))?
+                        }
+                        if self.stippled_smooth_lines &&
+                            supported.stippled_smooth_lines == 0
+                        {
+                            Err(err!(
+                                "stippled_smooth_lines not supported"
+                            ))?
+                        }
+                        Ok(())
+                    },
+                    move |ctx| {
+                        if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                            ctx.set_features(
+                                |enable: vk::PhysicalDeviceVulkan14Features|
+                                    enable.rectangular_lines(self.rectangular_lines)
+                                        .bresenham_lines(self.bresenham_lines)
+                                        .smooth_lines(self.smooth_lines)
+                                        .stippled_rectangular_lines(self.stippled_rectangular_lines)
+                                        .stippled_bresenham_lines(self.stippled_bresenham_lines)
+                                        .stippled_smooth_lines(self.stippled_smooth_lines)
+                            );
+                        } else {
+                            ctx.set_features(
+                                |enable: vk::PhysicalDeviceLineRasterizationFeatures|
+                                    enable.rectangular_lines(self.rectangular_lines)
+                                        .bresenham_lines(self.bresenham_lines)
+                                        .smooth_lines(self.smooth_lines)
+                                        .stippled_rectangular_lines(self.stippled_rectangular_lines)
+                                        .stippled_bresenham_lines(self.stippled_bresenham_lines)
+                                        .stippled_smooth_lines(self.stippled_smooth_lines)
+                            );
+                        }
+                        let mut properties = vk::PhysicalDeviceLineRasterizationProperties
+                            ::default();
+                        ctx.get_physical_device_properties(&mut properties);
+                        FeatureData::new(Data(
+                            Features {
+                                rectangular_lines: self.rectangular_lines,
+                                bresenham_lines: self.bresenham_lines,
+                                smooth_lines: self.smooth_lines,
+                                stippled_rectangular_lines: self.stippled_rectangular_lines,
+                                stippled_bresenham_lines: self.stippled_bresenham_lines,
+                                stippled_smooth_lines: self.stippled_smooth_lines
+                            },
+                            Properties {
+                                line_sub_pixel_precision_bits: properties.line_sub_pixel_precision_bits
+                            },
+                        ))
+                    },
+                    NAME,
+                )
             }
         }
     }
@@ -1693,7 +1814,7 @@ pub mod vk_14 {
         }
 
         /// The name of the feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(vertex_attribute_instance_rate_divisor));
+        pub const NAME: FeatureName<Data> = FeatureName::new("vertex_attribute_instance_rate_divisor");
 
         /// A builder for enabling [`vertex_attribute_instance_rate_divisor`][self] features.
         #[derive(Default, Clone, Copy)]
@@ -1723,56 +1844,54 @@ pub mod vk_14 {
             /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
                 use tuhka::khr;
-                unsafe {
-                    feature_ext(
-                        move |ctx| {
-                            if ctx.api_version() < VULKAN_API_VERSION_1_4 {
-                                ctx.add_required_extension(khr::vertex_attribute_divisor::NAME)?;
-                            }
-                            let mut features = vk::PhysicalDeviceVertexAttributeDivisorFeatures
-                                ::default();
-                            ctx.get_physical_device_features(&mut features);
-                            if features.vertex_attribute_instance_rate_divisor == 0 {
-                                Err(err!("vertex_attribute_instance_rate_divisor not supported"))
-                            } else if self.zero_divisor && features.vertex_attribute_instance_rate_zero_divisor == 0 {
-                                Err(err!("vertex_attribute_instance_rate_divisor_zero_divisor not supported"))
-                            } else {
-                                Ok(())
-                            }
-                        },
-                        move |ctx| {
-                            if ctx.api_version() < VULKAN_API_VERSION_1_4 {
-                                ctx.set_features(
-                                    |features: vk::PhysicalDeviceVertexAttributeDivisorFeatures|
-                                        features
-                                            .vertex_attribute_instance_rate_divisor(true)
-                                            .vertex_attribute_instance_rate_zero_divisor(self.zero_divisor)
-                                );
-                            } else {
-                                ctx.set_features(
-                                    |features: vk::PhysicalDeviceVulkan14Features|
-                                        features
-                                            .vertex_attribute_instance_rate_divisor(true)
-                                            .vertex_attribute_instance_rate_zero_divisor(self.zero_divisor)
-                                );
-                            }
-                            let mut properties = vk::PhysicalDeviceVertexAttributeDivisorProperties
-                                ::default();
-                            ctx.get_physical_device_properties(&mut properties);
-                            FeatureData::new(Data(
-                                Features {
-                                    zero_divisor: self.zero_divisor
-                                },
-                                Properties {
-                                    max_vertex_attrib_divisor: properties.max_vertex_attrib_divisor,
-                                    supports_non_zero_first_instance:
-                                        properties.supports_non_zero_first_instance != 0,
-                                },
-                            ))
-                        },
-                        NAME,
-                    )
-                }
+                feature_ext(
+                    move |ctx| {
+                        if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                            ctx.add_required_extension(khr::vertex_attribute_divisor::NAME)?;
+                        }
+                        let mut features = vk::PhysicalDeviceVertexAttributeDivisorFeatures
+                            ::default();
+                        ctx.get_physical_device_features(&mut features);
+                        if features.vertex_attribute_instance_rate_divisor == 0 {
+                            Err(err!("vertex_attribute_instance_rate_divisor not supported"))
+                        } else if self.zero_divisor && features.vertex_attribute_instance_rate_zero_divisor == 0 {
+                            Err(err!("vertex_attribute_instance_rate_divisor_zero_divisor not supported"))
+                        } else {
+                            Ok(())
+                        }
+                    },
+                    move |ctx| {
+                        if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                            ctx.set_features(
+                                |features: vk::PhysicalDeviceVertexAttributeDivisorFeatures|
+                                    features
+                                        .vertex_attribute_instance_rate_divisor(true)
+                                        .vertex_attribute_instance_rate_zero_divisor(self.zero_divisor)
+                            );
+                        } else {
+                            ctx.set_features(
+                                |features: vk::PhysicalDeviceVulkan14Features|
+                                    features
+                                        .vertex_attribute_instance_rate_divisor(true)
+                                        .vertex_attribute_instance_rate_zero_divisor(self.zero_divisor)
+                            );
+                        }
+                        let mut properties = vk::PhysicalDeviceVertexAttributeDivisorProperties
+                            ::default();
+                        ctx.get_physical_device_properties(&mut properties);
+                        FeatureData::new(Data(
+                            Features {
+                                zero_divisor: self.zero_divisor
+                            },
+                            Properties {
+                                max_vertex_attrib_divisor: properties.max_vertex_attrib_divisor,
+                                supports_non_zero_first_instance:
+                                    properties.supports_non_zero_first_instance != 0,
+                            },
+                        ))
+                    },
+                    NAME,
+                )
             }
         }
     }
@@ -1785,46 +1904,45 @@ pub mod vk_14 {
         use crate::features::*;
 
         /// The name of this feature.
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(index_type_uint8));
+        pub const NAME: FeatureName<()> = FeatureName::new("index_type_uint8");
 
         /// Creates the [`DeviceFeature`].
         pub fn new() -> DeviceFeature {
             use tuhka::khr;
-            unsafe {
-                feature_ext(
-                    |ctx| {
-                        if ctx.api_version() < VULKAN_API_VERSION_1_4 {
-                            ctx.add_required_extension(khr::index_type_uint8::NAME)?;
-                        }
-                        let mut features = vk::PhysicalDeviceIndexTypeUint8Features
-                            ::default();
-                        ctx.get_physical_device_features(&mut features);
-                        if features.index_type_uint8 == 0 {
-                            Err(err!("index_type_uint8 not supported"))
-                        } else {
-                            Ok(())
-                        }
-                    },
-                    move |ctx| {
-                        if ctx.api_version() < VULKAN_API_VERSION_1_4 {
-                            ctx.set_features(
-                                |features: vk::PhysicalDeviceIndexTypeUint8Features|
-                                    features.index_type_uint8(true)
-                            );
-                        } else {
-                            ctx.set_features(
-                                |features: vk::PhysicalDeviceVulkan14Features|
-                                    features.index_type_uint8(true)
-                            );
-                        }
-                        FeatureData::empty()
-                    },
-                    NAME,
-                )
-            }
+            feature_ext(
+                |ctx| {
+                    if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                        ctx.add_required_extension(khr::index_type_uint8::NAME)?;
+                    }
+                    let mut features = vk::PhysicalDeviceIndexTypeUint8Features
+                        ::default();
+                    ctx.get_physical_device_features(&mut features);
+                    if features.index_type_uint8 == 0 {
+                        Err(err!("index_type_uint8 not supported"))
+                    } else {
+                        Ok(())
+                    }
+                },
+                move |ctx| {
+                    if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                        ctx.set_features(
+                            |features: vk::PhysicalDeviceIndexTypeUint8Features|
+                                features.index_type_uint8(true)
+                        );
+                    } else {
+                        ctx.set_features(
+                            |features: vk::PhysicalDeviceVulkan14Features|
+                                features.index_type_uint8(true)
+                        );
+                    }
+                    FeatureData::empty()
+                },
+                NAME,
+            )
         }
     }
-
+    
+    /* unsupported for now
     pub mod dynamic_rendering_local_read {
         //! Allows the reads from attachments written by previous fragment shaders within a dynamic
         //! render pass.
@@ -1832,14 +1950,25 @@ pub mod vk_14 {
         //! See [`new`] for enabling this feature.
 
         use crate::features::*;
+
+        /// [`dynamic_rendering_local_read`][self] properties.
+        #[derive(Clone, Copy)]
+        pub struct Properties {
+            /// Specifies whether [depth/stencil attachments] **can** be input attachments.
+            ///
+            /// [depth/stencil attachments]: DepthStencilAttachment
+            pub depth_stencil_attachments: bool,
+            /// Specifies whether multisampled attachments **can** be input attachments.
+            pub multisampled_attachments: bool,
+        }
  
         /// The name of this feature.
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(dynamic_rendering_local_read));
+        pub const NAME: FeatureName<Properties> = FeatureName::new("dynamic_rendering_local_read");
 
         /// Creates the [`DeviceFeature`]
         pub fn new() -> DeviceFeature {
             use tuhka::khr;
-            unsafe { feature_ext(
+            feature_ext(
                 |ctx| {
                     if ctx.api_version() < VULKAN_API_VERSION_1_4 {
                         ctx.add_required_extension(khr::dynamic_rendering_local_read::NAME)?;
@@ -1854,6 +1983,10 @@ pub mod vk_14 {
                     }
                 },
                 move |ctx| {
+                    let mut properties = Properties {
+                        depth_stencil_attachments: true,
+                        multisampled_attachments: true,
+                    };
                     if ctx.api_version() < VULKAN_API_VERSION_1_4 {
                         ctx.set_features(
                             |features: vk::PhysicalDeviceDynamicRenderingLocalReadFeatures|
@@ -1864,14 +1997,21 @@ pub mod vk_14 {
                             |features: vk::PhysicalDeviceVulkan14Features|
                                 features.dynamic_rendering_local_read(true)
                         );
+                        let mut vk_14_properties = vk::PhysicalDeviceVulkan14Properties::default();
+                        ctx.get_physical_device_properties(&mut vk_14_properties);
+                        properties.depth_stencil_attachments = vk_14_properties
+                            .dynamic_rendering_local_read_depth_stencil_attachments != 0;
+                        properties.multisampled_attachments = vk_14_properties
+                            .dynamic_rendering_local_read_multisampled_attachments != 0;
                     }
-                    FeatureData::empty()
+                    FeatureData::new(properties)
                 },
                 NAME
-            ) }
+            )
         }
-    } 
+    } */
 
+    /* not supported for now
     pub mod host_image_copy {
         //! Allows the use of `copy_memory_to_image`, `copy_image_to_memory`and
         //! `copy_image_to_image`.
@@ -1913,12 +2053,12 @@ pub mod vk_14 {
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(host_image_copy));
+        pub const NAME: FeatureName<Data> = FeatureName::new("host_image_copy");
 
         /// Creates the [`DeviceFeature`].
         pub fn new() -> DeviceFeature {
             use tuhka::ext;
-            unsafe { feature_ext(
+            feature_ext(
                 |ctx| {
                     if ctx.api_version() < VULKAN_API_VERSION_1_4 {
                         ctx.add_required_extension(ext::host_image_copy::NAME)?;
@@ -1966,9 +2106,9 @@ pub mod vk_14 {
                     }))
                 },
                 NAME
-            ) }
+            )
         }
-    }
+    } */
 
     pub mod push_descriptor {
         //! Allows the use of push descriptors.
@@ -2000,11 +2140,11 @@ pub mod vk_14 {
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(push_descriptor));
+        pub const NAME: FeatureName<Data> = FeatureName::new("push_descriptor");
 
         /// Creates the [`DeviceFeature`].
         pub fn new() -> DeviceFeature {
-            unsafe { feature_ext(
+            feature_ext(
                 |ctx| {
                     if ctx.api_version() < VULKAN_API_VERSION_1_4 {
                         ctx.add_required_extension(khr::push_descriptor::NAME)?;
@@ -2014,7 +2154,7 @@ pub mod vk_14 {
                             ::default();
                         ctx.get_physical_device_features(&mut features);
                         if features.push_descriptor == 0 {
-                            Err(err!("push_descriptor feature not supported"))
+                            Err(err!("`push_descriptor` feature not supported"))
                         } else {
                             Ok(())
                         }
@@ -2035,7 +2175,74 @@ pub mod vk_14 {
                     }))
                 },
                 NAME
-            )}
+            ) 
+        }
+    }
+
+    pub mod maintenance5 {
+        //! Adds a collection of minor features.
+        //!
+        //! New features:
+        //! - Allows the use of the [`A1b5g5r5_Unorm_Pack16`][1] and [`A8_Unorm`][2] formats.
+        //! - Allows the use of [`BufferUsages`] beyond the 32-bit limit, which is required for some
+        //!   features.
+        //! - Internal improvements.
+        //!
+        //! [1]: Format::A1b5g5r5_Unorm_Pack16
+        //! [2]: Format::A8_Unorm
+        
+        use tuhka::khr;
+
+        use crate::features::*;
+    
+        /// The name of this feature.
+        pub const NAME: FeatureName<()> = FeatureName::new("maintenance5");
+
+        /// Creates the [`DeviceFeature`]
+        pub fn new() -> DeviceFeature {
+            feature_ext(
+                |ctx| {
+                    if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                        ctx.add_required_extension(khr::maintenance5::NAME)?;
+                        let mut features = vk::PhysicalDeviceMaintenance5Features::default();
+                        ctx.get_physical_device_features(&mut features);
+                        if features.maintenance5 == 0 {
+                            Err(err!(
+                                "`maintenance5` feature not supported"
+                            ))
+                        } else {
+                            Ok(())
+                        }
+                    } else {
+                        let mut features = vk::PhysicalDeviceVulkan14Features::default();
+                        ctx.get_physical_device_features(&mut features);
+                        if features.maintenance5 == 0 {
+                            Err(err!(
+                                "`maintenance5` feature not supported"
+                            ))
+                        } else {
+                            Ok(())
+                        }
+                    }
+                },
+                |ctx| {
+                    if ctx.api_version() < VULKAN_API_VERSION_1_4 {
+                        ctx.set_features(|features: vk::PhysicalDeviceMaintenance5Features|
+                            features.maintenance5(true)
+                        );
+                    } else {
+                        ctx.set_features(|features: vk::PhysicalDeviceVulkan14Features|
+                            features.maintenance5(true)
+                        );
+                    }
+                    ctx.add_supported_enums([
+                        Format::A1b5g5r5_Unorm_Pack16,
+                        Format::A8_Unorm,
+                    ]);
+                    FeatureData::empty()
+                },
+                NAME
+            )
         }
     }
 }
@@ -2115,7 +2322,7 @@ pub mod vk_khr {
         }
         
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(robustness2));
+        pub const NAME: FeatureName<Data> = FeatureName::new("robustness2");
 
         /// Creates [`Builder`].
         pub fn builder() -> Builder {
@@ -2151,7 +2358,7 @@ pub mod vk_khr {
 
             /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
-                unsafe { feature_ext(
+                feature_ext(
                     move |ctx| {
                         ctx.add_required_extension(khr::robustness2::NAME)?;
                         let mut vk_features = vk::PhysicalDeviceRobustness2FeaturesKHR
@@ -2161,14 +2368,14 @@ pub mod vk_khr {
                             vk_features.robust_buffer_access2 == 0
                         {
                             Err(err!(
-                                "robust_buffer_access2 feature not supported"
+                                "`robust_buffer_access2` feature not supported"
                             ))?
                         }
                         if self.robust_image_access2 &&
                             vk_features.robust_image_access2 == 0
                         {
                             Err(err!(
-                                "robust_image_access2 feature not supported"
+                                "`robust_image_access2` feature not supported"
                             ))?
                         }
                         Ok(())
@@ -2203,28 +2410,52 @@ pub mod vk_khr {
                         ))
                     },
                     NAME,
-                ) }
+                )
             }
         }
     }
 
-    pub(crate) fn swapchain() -> DeviceFeature {
+    pub mod swapchain {
+        //! Allows the use of [`Swapchain`].
+            
         use tuhka::khr;
-        pub const NAME: FeatureName<()> = FeatureName::new(stringify!(swapchain));
-        unsafe { feature_ext(
-            |ctx| {
-                if ctx.instance().has_display_handle() {
-                    ctx.add_required_extension(khr::swapchain::NAME)?;
-                    Ok(())
-                } else {
-                    Ok(())
-                }
-            },
-            |_| {
-                FeatureData::empty()
-            },
-            NAME,
-        ) }
+
+        use crate::features::*;
+
+        use sync::OnceLock;
+
+        use khr::swapchain::Device;
+
+        pub struct Data(OnceLock<Device>);
+
+        /// The name of this future.
+        pub const NAME: FeatureName<Data> = FeatureName::new("swapchain");
+
+        impl Data {
+
+            #[inline]
+            pub(crate) fn functions(&self, device: &crate::Device) -> &khr::swapchain::Device {
+                self.0.get_or_init(|| Device::new(device.functions()))
+            }
+        }
+
+        /// Creates the [`DeviceFeature`].
+        pub fn new() -> DeviceFeature {
+            feature_ext(
+                |ctx| {
+                    if ctx.instance().has_display_handle() {
+                        ctx.add_required_extension(khr::swapchain::NAME)?;
+                        Ok(())
+                    } else {
+                        Ok(())
+                    }
+                },
+                |_| {
+                    FeatureData::new(Data(OnceLock::new()))
+                },
+                NAME,
+            )
+        }
     }
 }
 
@@ -2388,13 +2619,13 @@ pub mod vk_ext {
 
             /// [`mesh_shader`][self] [`device`][Device].
             #[inline]
-            pub fn functions(&self, device: &crate::Device) -> &Device {
+            pub(crate) fn functions(&self, device: &crate::Device) -> &Device {
                 self.2.get_or_init(|| Device::new(device.functions()))
             }
         }
     
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(mesh_shader));
+        pub const NAME: FeatureName<Data> = FeatureName::new("mesh_shader");
 
         impl Builder {
 
@@ -2424,21 +2655,21 @@ pub mod vk_ext {
 
             /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
-                unsafe { feature_ext(
+                feature_ext(
                     move |ctx| {
                         ctx.add_required_extension(ext::mesh_shader::NAME)?;
                         let mut vk_features = vk::PhysicalDeviceMeshShaderFeaturesEXT::default();
                         ctx.get_physical_device_features(&mut vk_features);
                         if self.task_shader && vk_features.task_shader == 0 {
-                            Err(err!("task_shader feature not supported"))
+                            Err(err!("`task_shader` feature not supported"))
                         } else if vk_features.mesh_shader == 0 {
-                            Err(err!("mesh_shader feature not supported"))
+                            Err(err!("`mesh_shader` feature not supported"))
                         } else if self.multiview_mesh_shader && vk_features.multiview_mesh_shader == 0 {
-                            Err(err!("multiview_mesh_shader feature not supported"))
+                            Err(err!("`multiview_mesh_shader` feature not supported"))
                         } else if self.primitive_fragment_shading_rate_mesh_shader &&
                             vk_features.primitive_fragment_shading_rate_mesh_shader == 0
                         {
-                            Err(err!("primitive_fragment_shading_rate_mesh_shader feature not supported"))
+                            Err(err!("`primitive_fragment_shading_rate_mesh_shader` feature not supported"))
                         } else {
                             Ok(())
                         }
@@ -2503,7 +2734,7 @@ pub mod vk_ext {
                             OnceLock::new()))
                     },
                     NAME,
-                ) }
+                )
             }
         }
     }
@@ -2590,13 +2821,13 @@ pub mod vk_ext {
             }
 
             /// Returns [`Device`], which contains all relevant Vulkan function pointers.
-            pub fn functions(&self, device: &crate::Device) -> &Device {
+            pub(crate) fn functions(&self, device: &crate::Device) -> &Device {
                 self.1.get_or_init(|| Device::new(device.functions()))
             }
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(extended_dynamic_state3));
+        pub const NAME: FeatureName<Data> = FeatureName::new("extended_dynamic_state3");
 
         /// A builder for enabling features.
         #[derive(Default, Clone, Copy)]
@@ -2724,9 +2955,10 @@ pub mod vk_ext {
                 self.extended_dynamic_state3_line_stipple_enable = enable;
                 self
             }
-
+    
+            /// Creates the [`DeviceFeature`].
             pub fn build(self) -> DeviceFeature {
-                unsafe { feature_ext(
+                feature_ext(
                     move |ctx| {
                         ctx.add_required_extension(ext::extended_dynamic_state3::NAME)?;
                         let mut vk_features = vk::PhysicalDeviceExtendedDynamicState3FeaturesEXT
@@ -2738,7 +2970,7 @@ pub mod vk_ext {
                                     vk_features.$name == 0
                                 {
                                     Err(err!("{}", concat!(
-                                        stringify!($name), " feature not supported",
+                                        "`", stringify!($name), "` feature not supported",
                                     )))?
                                 }
                             )+};
@@ -2877,7 +3109,7 @@ pub mod vk_ext {
                         ))
                     },
                     NAME,
-                ) }
+                )
                 }
         }
    
@@ -2908,17 +3140,17 @@ pub mod vk_ext {
 
             /// [`mesh_shader`][self] [`device`][Device].
             #[inline]
-            pub fn functions(&self, device: &crate::Device) -> &Device {
+            pub(crate) fn functions(&self, device: &crate::Device) -> &Device {
                 self.0.get_or_init(|| Device::new(device.functions()))
             }
         }
 
         /// The name of this feature.
-        pub const NAME: FeatureName<Data> = FeatureName::new(stringify!(vertex_input_dynamic_state));
+        pub const NAME: FeatureName<Data> = FeatureName::new("vertex_input_dynamic_state");
 
         /// Creates the [`DeviceFeature`]
         pub fn new() -> DeviceFeature {
-            unsafe { feature_ext(
+            feature_ext(
                 move |ctx| {
                     ctx.add_required_extension(ext::vertex_input_dynamic_state::NAME)?;
                     let mut vk_features = vk::PhysicalDeviceVertexInputDynamicStateFeaturesEXT
@@ -2938,7 +3170,7 @@ pub mod vk_ext {
                     FeatureData::new(Data(OnceLock::new()))
                 },
                 NAME,
-            ) }
+            )
         }
     }
 
@@ -2948,8 +3180,8 @@ pub mod vk_ext {
 }
 
 #[inline]
-pub(crate) fn core_features() -> Vec32<DeviceFeature> {
-    vec32![
+pub(crate) fn core_features() -> [DeviceFeature; 8] {
+    [
         vk_12::timeline_semaphore(),
         vk_12::separate_depth_stencil_layouts(),
         vk_13::synchronization2(),
@@ -2958,7 +3190,6 @@ pub(crate) fn core_features() -> Vec32<DeviceFeature> {
         vk_13::extended_dynamic_state(),
         vk_13::maintenance4::new(),
         vk_13::shader_terminate_invocation::new(),
-        vk_khr::swapchain(),
     ]
 }
 

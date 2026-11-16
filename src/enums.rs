@@ -456,13 +456,11 @@ pub enum SampleCountBit {
 }
 unsafe impl NoUninit for SampleCountBit {}
 impl SampleCountBit {
-
     /// Converts `self` to [`SampleCounts`]
     #[inline]
     pub const fn to_flags(self) -> SampleCounts {
         SampleCounts::from_bits_retain(self as u32)
     }
-
     /// Extracts the highest supported sample count from [`SampleCounts`].
     #[inline]
     pub fn highest_count(supported: SampleCounts) -> Option<Self> {
@@ -473,6 +471,33 @@ impl From<SampleCountBit> for vk::SampleCountFlags {
 
     #[inline]
     fn from(value: SampleCountBit) -> Self {
+        Self::from_raw(value as u32)
+    }
+}
+/// Specifies a resolve mode for a [`ResolveAttachment`].
+#[repr(u32)]
+#[derive(Clone, Copy, CheckedBitPattern, ByteEq, ByteHash, Debug)]
+pub enum ResolveMode {
+    /// Specifies the resolve operation is equal to the value of sample `0`.
+    Zero = 0x1,
+    /// Specifies that the resolve operation is the average of the sample values.
+    Average = 0x2,
+    /// Specifies that the resolve operation is the minimum of the sample values.
+    Min = 0x4,
+    /// Specifies that the resolve operation is the maximum of the sample values.
+    Max = 0x8,
+}
+unsafe impl NoUninit for ResolveMode {}
+impl ResolveMode {
+    /// Converts `self` to [`ResolveModeFlags`].
+    #[inline]
+    pub const fn to_flags(self) -> ResolveModeFlags {
+        ResolveModeFlags::from_bits_retain(self as u32)
+    }
+}
+impl From<ResolveMode> for vk::ResolveModeFlags {
+    #[inline]
+    fn from(value: ResolveMode) -> Self {
         Self::from_raw(value as u32)
     }
 }
@@ -731,7 +756,7 @@ impl From<SamplerWrappingMode> for vk::SamplerAddressMode {
         Self::from_raw(value as i32)
     }
 }
-/// Represents image dimension components.
+/// Represents number of image dimensions.
 #[repr(i32)]
 #[derive(Clone, Copy, Zeroable, ByteEq, ByteHash)]
 pub enum ImageDim {
@@ -749,9 +774,9 @@ impl From<ImageDim> for vk::ImageType {
         Self::from_raw(value as i32)
     }
 }
-/// Represents image view dimension components.
+/// Represents number of image view dimensions and whether the view is arrayed.
 #[repr(i32)]
-#[derive(Clone, Copy, Zeroable, ByteEq, ByteHash)]
+#[derive(Clone, Copy, Zeroable, ByteEq, ByteHash, Debug)]
 pub enum ImageViewDim {
     /// 1-dimensional view.
     Dim1 = 0,
@@ -846,3 +871,113 @@ impl From<SamplerBorderColor> for vk::BorderColor {
         Self::from_raw(value as i32)
     }
 }
+/// Specifies an [`ImageView`] component swizzle.
+///
+/// The default value is [`Identity`][Self::Identity].
+#[repr(i32)]
+#[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash)]
+pub enum ComponentSwizzle {
+    /// Specifies that the component swizzles its self.
+    ///
+    /// This is the default value.
+    #[default]
+    Identity = 0,
+    /// Specifies that the component is set to zero.
+    Zero = 1,
+    /// Specifies that the component is set to `1` or `1.0` depending on the format of the image
+    /// view.
+    One = 2,
+    /// Specifies that the component swizzles the `R` component.
+    R = 3,
+    /// Specifies that the component swizzles the `G` component.
+    G = 4,
+    /// Specifies that the component swizzles the `B` component.
+    B = 5,
+    /// Specifies that the component swizzles the alpha-component.
+    A = 6,
+}
+unsafe impl NoUninit for ComponentSwizzle {}
+impl From<ComponentSwizzle> for vk::ComponentSwizzle {
+    #[inline]
+    fn from(value: ComponentSwizzle) -> Self {
+        Self::from_raw(value as i32)
+    }
+}
+/// Specifies a single selected bit of [`CompositeAlphaFlags`] bits.
+#[repr(u32)]
+#[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
+pub enum CompositeAlphaBit {
+    /// Specifies that the [`OPAQUE`] bit is selected.
+    ///
+    /// [`OPAQUE`]: CompositeAlphaFlags::OPAQUE
+    Opaque = 0x1,
+    /// Specifies that the [`PRE_MULTIPLIED`] bit is selected.
+    ///
+    /// [`PRE_MULTIPLIED`]: CompositeAlphaFlags::PRE_MULTIPLIED
+    PreMultiplied = 0x2,
+    /// Specifies that the [`POST_MULTIPLIED`] bit is selected.
+    ///
+    /// [`POST_MULTIPLIED`]: CompositeAlphaFlags::POST_MULTIPLIED
+    PostMultiplied = 0x4,
+    /// Specifies that the [`INHERIT`] bit is selected.
+    ///
+    /// [`INHERIT`]: CompositeAlphaFlags::INHERIT
+    Inherit = 0x8,
+}
+unsafe impl NoUninit for CompositeAlphaBit {}
+impl From<CompositeAlphaBit> for vk::CompositeAlphaFlagsKHR {
+    #[inline]
+    fn from(value: CompositeAlphaBit) -> Self {
+        Self::from_raw(value as u32)
+    }
+}
+/// Specifies an attachment load operation for attachments in [`RenderPassAttributes`].
+#[repr(i32)]
+#[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
+pub enum AttachmentLoadOp {
+    /// Specifies that the previous contents of the image within the [render area] will be preserved
+    /// as the initial values.
+    ///
+    /// [render area]: RenderArea
+    Load     = 0,
+    /// Specifies that the contents within the [render area] will be cleared to a uniform value, which
+    /// is specified when a [render pass instance is begun].
+    ///
+    /// [render pass instance is begun]: CommandBufferRecorder::render_pass
+    /// [render area]: RenderArea
+    Clear    = 1,
+    /// Specifies that the previous contents within the area need not be preserved; the contents of
+    /// the attachment will be **undefined** inside the [render area].
+    ///
+    /// [render area]: RenderArea
+    DontCare = 2,
+}
+impl From<AttachmentLoadOp> for vk::AttachmentLoadOp {
+    #[inline]
+    fn from(value: AttachmentLoadOp) -> Self {
+        Self::from_raw(value as i32)
+    }
+}
+unsafe impl NoUninit for AttachmentLoadOp {}
+/// Specifies an attachment store operation for attachments in [`RenderPassAttributes`].
+#[repr(i32)]
+#[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
+pub enum AttachmentStoreOp {
+    /// Specifies the contents generated during the render pass and within the [render area] are
+    /// written to memory.
+    ///
+    /// [render area]: RenderArea
+    Store   = 0,
+    /// Specifies the contents within the [render area] are not needed after rendering, and may be
+    /// discarded; the contents of the attachment will be undefined inside the [render area].
+    ///
+    /// [render area]: RenderArea
+    DontCare = 1,
+}
+impl From<AttachmentStoreOp> for vk::AttachmentStoreOp {
+    #[inline]
+    fn from(value: AttachmentStoreOp) -> Self {
+        Self::from_raw(value as i32)
+    }
+}
+unsafe impl NoUninit for AttachmentStoreOp {}

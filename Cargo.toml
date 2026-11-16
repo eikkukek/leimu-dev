@@ -5,8 +5,9 @@ edition = "2024"
 
 [dependencies]
 log = "0.4.35"
+static_assertions = "1.1.0"
 
-tuhka = { version = "0.1.11", features = ["window", "bytemuck"] }
+tuhka = { version = "0.1.13", features = ["window", "bytemuck"] }
 leimu-spirv = "0.4.2"
 
 raw-window-handle = "0.6.2"
@@ -20,6 +21,7 @@ parking_lot = "0.13.0"
 smallvec = "1.16.5"
 arrayvec = "0.7.8"
 ahash = "0.8.12"
-leimu-mem = "0.4.2"
+indexmap = "2.14.2"
+leimu-mem = "0.5.2"
 
-bytemuck = { version = "1.25.2", features = ["derive"] }
+bytemuck = { version = "1.25.2", features = ["derive", "impl_core_error", "align_offset"] }
