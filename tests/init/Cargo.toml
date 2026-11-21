@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-leimu = { path = "../../." }
+leimu = { path = "../../.", default-features = false, features = ["spirv-tools-installed"] }
 env_logger = "0.11.11"

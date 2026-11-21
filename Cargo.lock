@@ -188,7 +188,9 @@ dependencies = [
 
 [[package]]
 name = "leimu-spirv"
-version = "0.5.5"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e118ee730c7a6523fd572b6e20a4f78a6cff7b7ae1be78ccbe71b3b204f7437"
 dependencies = [
  "bitflags",
  "indexmap",

@@ -257,14 +257,6 @@ impl ImageSubresourceRange {
         self.layer_count = count;
         self
     }
-    /// Copies `self` and sets `layer_count`.
-    ///
-    /// `0` indicates remaining layers from `base_array_layers`.
-    #[inline]
-    pub fn layer_count(mut self, count: u32) -> Self {
-        self.layer_count = count.try_into().ok();
-        self
-    }
 }
 /// Specifies the component mapping of an [`ImageView`].
 ///

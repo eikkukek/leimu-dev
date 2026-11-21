@@ -1,4 +1,4 @@
-//! A modern Vulkan run-time for Rust.
+//! A modern Vulkan graphics API for Rust.
 
 #![warn(rustdoc::all)]
 #![warn(missing_docs)]

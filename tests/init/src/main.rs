@@ -13,13 +13,11 @@ fn main() -> Result<(), leimu::Error> {
     let suitable_gpus = instance
         .find_suitable_gpus(leimu::DeviceAttributes {
             required_features: leimu::Features::from_iter([
-                vk_core::push_descriptor::new(),
-                vk_core::shader_zero_initialize_workgroup_memory::new(),
-                vk_core::extended_dynamic_state2::builder()
-                    .extended_dynamic_state2(true)
-                    .build(),
-                vk_core::sampler_anisotropy::new(),
-                vk_core::image_cube_array::new(),
+                vk_core::push_descriptor::require(),
+                vk_core::shader_zero_initialize_workgroup_memory::require(),
+                vk_core::extended_dynamic_state2::require(),
+                vk_core::sampler_anisotropy::require(),
+                vk_core::image_cube_array::require(),
             ]),
         })?;
     let gpu = suitable_gpus.gpus()
@@ -83,7 +81,7 @@ fn main() -> Result<(), leimu::Error> {
             usage: leimu::BufferUsages::TRANSFER_SRC,
             memory_type: leimu::MemoryType::HostVisible,
         },
-        Global,
+        None,
     )?.clone();
     let _clone = buffer.clone();
     buffer.map(leimu::MapMode::WriteOnly, |buf| {
@@ -127,7 +125,7 @@ fn main() -> Result<(), leimu::Error> {
             view_formats: &view_formats,
             ..Default::default()
         },
-        Global,
+        None,
     ) {
         Ok(img) => {
             let img = img.clone().clone().clone();
@@ -141,7 +139,7 @@ fn main() -> Result<(), leimu::Error> {
             }
         },
     }
-    let arena = leimu::mem::arena::Arena::new(512).unwrap();
+    let arena = leimu::mem::arena::Arena::new(1 << 16).unwrap();
     let cube_image = device.create_image(
         leimu::ImageAttributes  {
             label: Some("cube image"),
@@ -154,7 +152,7 @@ fn main() -> Result<(), leimu::Error> {
             view_compatibility: leimu::ImageViewCompatibility::CUBE,
             ..Default::default()
         },
-        &arena,
+        Some(leimu::any_allocator(arena)),
     )?;
     let cube_view = device.create_image_view(
         cube_image,
@@ -163,10 +161,10 @@ fn main() -> Result<(), leimu::Error> {
             format: None,
             dimensions: leimu::ImageViewDim::Cube,
             range: leimu::ImageSubresourceRange::default()
-                .layer_count(6),
+                .layers(0..6),
             component_mapping: Default::default(),
         },
-        Global,
+        None,
     )?;
     let image_3d = device.create_image(
         leimu::ImageAttributes {
@@ -180,7 +178,7 @@ fn main() -> Result<(), leimu::Error> {
             mip_levels: 2,
             ..Default::default()
         },
-        Global,
+        None,
     )?;
     let view_3d_slice = device.create_image_view(
         image_3d.clone(),
@@ -189,12 +187,11 @@ fn main() -> Result<(), leimu::Error> {
             format: Some(leimu::Format::R8g8b8a8_Srgb),
             dimensions: leimu::ImageViewDim::Dim2Array,
             range: leimu::ImageSubresourceRange::default()
-                .base_mip_level(1)
-                .base_array_layer(64)
-                .layer_count(64),
+                .levels(0..1)
+                .layers(0..64),
             component_mapping: Default::default(),
         },
-        Global,
+        None,
     )?;
     let view_3d_value = device.create_image_view(
         image_3d.clone(),
@@ -203,14 +200,13 @@ fn main() -> Result<(), leimu::Error> {
             format: Some(leimu::Format::R8g8b8a8_Srgb),
             dimensions: leimu::ImageViewDim::Dim2,
             range: leimu::ImageSubresourceRange::default()
-                .base_mip_level(1)
-                .base_array_layer(64)
-                .layer_count(1),
+                .levels(0..1)
+                .layers(0..1),
             component_mapping: Default::default(),
         },
-        Global,
+        None,
     )?;
-    let view = view_3d_value.erase_allocator();
+    let view = view_3d_value;
     println!("{}", view.label().unwrap());
     Ok(())
 }
