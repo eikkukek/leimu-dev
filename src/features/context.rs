@@ -17,9 +17,12 @@ use features::{
     ExtendPhysicalDeviceFeatures2Obj, ExtendsPhysicalDeviceFeatures2Ext,
 };
 
-/*
 /// A trait for working with flag support dynamically.
-pub trait FlagSupport<Flags>: Any + Send + Sync {
+pub trait FlagSupport<Flags>: Any + Send + Sync
+{
+
+    /// Creates a [`FlagSupportObj`] containing all current flags set in self.
+    fn to_obj(&self) -> FlagSupportObj<Flags>;
 
     /// Extracts the raw inner value of a flag.
     fn as_raw(&self) -> Flags;
@@ -27,12 +30,9 @@ pub trait FlagSupport<Flags>: Any + Send + Sync {
     /// Adds flags to self.
     fn add_flags(&mut self, rhs: Flags);
 
-    /// Returns any `rhs` flags not present in self, if any.
-    fn missing_flags(&self, rhs: Flags) -> Option<Flags>;
-    
-    /// Creates a [`FlagSupportObj`] containing all current flags set in self.
-    fn to_obj(&self) -> FlagSupportObj<Flags>;
-}*/
+    /// Returns if `rhs` is contained in `self`.
+    fn contains(&self, rhs: Flags) -> bool;
+}
 
 /// An auto trait for checking enum support.
 ///
@@ -87,7 +87,6 @@ mod obj {
     };
 
     use super::*;
-    /*
     smallbox!(
         struct FlagSupportData<Rhs>: FlagSupport<Rhs>
     );
@@ -134,7 +133,7 @@ mod obj {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut *self.0
         }
-    }*/
+    }
 
     smallbox!(
         struct EnumSupportData: EnumSupport
@@ -211,7 +210,7 @@ mod obj {
     }
 }
 
-pub use obj::EnumSupportObj;
+pub use obj::*;
 
 /// A structure used when selecting suitable [`physical devices`][1].
 ///
@@ -294,27 +293,6 @@ impl FeatureQueryContext {
         &self.instance
     }
 
-    /// Returns a filled out [`vk::PhysicalDeviceFeatures`] structure indicating which Vulkan 1.0
-    /// device features are supported by the [`PhysicalDevice`].
-    #[inline]
-    pub fn vulkan_10_features(&self) -> &vk::PhysicalDeviceFeatures {
-        &self.vulkan_10
-    }
-
-    /// Returns a filled out [`vk::PhysicalDeviceFeatures`] structure indicating which Vulkan 1.1
-    /// device features are supported by the [`PhysicalDevice`].
-    #[inline]
-    pub fn vulkan_11_features(&self) -> &vk::PhysicalDeviceVulkan11Features<'static> {
-        &self.vulkan_11
-    }
-
-    /// Returns a filled out [`vk::PhysicalDeviceFeatures`] structure indicating which Vulkan 1.2
-    /// device features are supported by the [`PhysicalDevice`].
-    #[inline]
-    pub fn vulkan_12_features(&self) -> &vk::PhysicalDeviceVulkan12Features<'static> {
-        &self.vulkan_12
-    }
-
     /// Adds a required Vulkan [`Device`] extension.
     ///
     /// If the extension with `name` is not supported by the [`PhysicalDevice`], this returns an
@@ -340,15 +318,27 @@ impl FeatureQueryContext {
     #[inline]
     pub fn add_optional_extension(&mut self, name: &'static CStr) -> bool
     {
-        if self.required_extensions.insert(name) &&
+        !(!self.required_extensions.insert(name) &&
             !self.extension_properties
                 .iter()
                 .any(|prop| prop.extension_name_as_cstr().unwrap_or_default() == name)
-        {
-            return false
-        }
-        true
-    } 
+        )
+    }
+
+    #[inline]
+    pub fn get_vulkan_10_features(&self) -> &vk::PhysicalDeviceFeatures {
+        &self.vulkan_10
+    }
+
+    #[inline]
+    pub fn get_vulkan_11_features(&self) -> &vk::PhysicalDeviceVulkan11Features<'static> {
+        &self.vulkan_11
+    }
+
+    #[inline]
+    pub fn get_vulkan_12_features(&self) -> &vk::PhysicalDeviceVulkan12Features<'static> {
+        &self.vulkan_12
+    }
 
     /// Fills out any structure `E`, which extends [`vk::PhysicalDeviceFeatures2`].
     #[inline]
@@ -383,6 +373,13 @@ impl FeatureQueryContext {
             );
         }
     }
+
+    #[inline]
+    pub fn get_features<T: vk::ExtendsPhysicalDeviceFeatures2 + Default>(&self) -> T {
+        let mut t = T::default();
+        self.get_physical_device_features(&mut t);
+        t
+    }
 }
 
 #[derive(Clone)]
@@ -390,7 +387,7 @@ pub(crate) struct FeatureEnableContext<'a> {
     query_ctx: &'a FeatureQueryContext,
     pub(crate) enable_vulkan_10_features: vk::PhysicalDeviceFeatures,
     pub(crate) supported_enums: HashMap<TypeId, HashSet<EnumSupportObj>>,
-    //pub(crate) supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
+    pub(crate) supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
     //pub(crate) supported_flags64: HashMap<TypeId, FlagSupportObj<Flags64>>,
     enable_features: HashMap<TypeId, ExtendPhysicalDeviceFeatures2Obj>,
 }
@@ -402,7 +399,7 @@ impl<'a> FeatureEnableContext<'a> {
             query_ctx: ctx,
             enable_vulkan_10_features: vk::PhysicalDeviceFeatures::default(),
             supported_enums: HashMap::new(),
-            //supported_flags32: HashMap::new(),
+            supported_flags32: HashMap::new(),
             //supported_flags64: HashMap::new(),
             enable_features: HashMap::new(),
         }
@@ -428,11 +425,7 @@ impl<'a> FeatureEnableContext<'a> {
         e.extend(enums.into_iter().map(|e| e.to_obj()));
     }
 
-    /*
     /// Adds supported 32-bit [`flags`][1].
-    ///
-    /// # Safety
-    /// - The specified flags **must** be valid flags for this device.
     ///
     /// [1]: FlagSupport
     #[inline]
@@ -446,10 +439,8 @@ impl<'a> FeatureEnableContext<'a> {
             .or_insert_with(|| FlagSupportObj::new(flags));
     }
 
+    /*
     /// Adds supported 64-bit [`flags`][1].
-    ///
-    /// # Safety
-    /// - The specified flags **must** be valid flags for this device.
     ///
     /// [1]: FlagSupport
     #[inline]
@@ -462,6 +453,13 @@ impl<'a> FeatureEnableContext<'a> {
             .and_modify(|f| f.add_flags(flags.as_raw()))
             .or_insert_with(|| FlagSupportObj::new(flags));
     }*/
+
+    #[inline]
+    pub fn set_vulkan_10_features<F>(&mut self, f: F)
+        where F: FnOnce(vk::PhysicalDeviceFeatures) -> vk::PhysicalDeviceFeatures
+    {
+        self.enable_vulkan_10_features = f(self.enable_vulkan_10_features);
+    }
 
     /// This is used to edit/add a structure of type `E` to the p_next chain of
     /// [`vk::DeviceCreateInfo`].

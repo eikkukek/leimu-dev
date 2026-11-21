@@ -8,7 +8,8 @@ log = "0.4.35"
 static_assertions = "1.1.0"
 
 tuhka = { version = "0.1.13", features = ["window", "bytemuck"] }
-leimu-spirv = "0.4.2"
+leimu-spirv = { path = "../leimu-spirv" }
+spirv-tools = { version = "0.13.0", default-features = false }
 
 raw-window-handle = "0.6.2"
 
@@ -22,6 +23,11 @@ smallvec = "1.16.5"
 arrayvec = "0.7.8"
 ahash = "0.8.12"
 indexmap = "2.14.2"
-leimu-mem = "0.5.2"
+leimu-mem = "0.6.0"
 
 bytemuck = { version = "1.25.2", features = ["derive", "impl_core_error", "align_offset"] }
+
+[features]
+default = ["spirv-tools-compiled"]
+spirv-tools-compiled = ["spirv-tools/use-compiled-tools"]
+spirv-tools-installed = ["spirv-tools/use-installed-tools"]

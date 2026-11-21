@@ -18,6 +18,7 @@ mod structs;
 mod const_name;
 mod version;
 mod instance;
+mod limits;
 mod gpu;
 mod features;
 mod memory;
@@ -31,13 +32,18 @@ mod image;
 mod buffer;
 mod surface;
 mod swapchain;
+mod shader;
+mod queries;
+mod statics;
 
-mod macros;
+pub(crate) mod macros;
 
 pub use leimu_mem as mem;
+pub use leimu_spirv as spirv;
+pub use spirv_tools;
 pub use bytemuck;
 
-pub use error::prelude::{Error, AnyError, DescribeResult, FormatQueryError};
+pub use error::prelude::*;
 
 pub use vec::VecWrapper;
 pub use sorted::Sorted;
@@ -48,6 +54,7 @@ pub use flags::*;
 pub use enums::*;
 pub use structs::*;
 pub use instance::*;
+pub use limits::*;
 pub use gpu::*;
 pub use command::*;
 pub use memory::*;
@@ -59,6 +66,8 @@ pub use image::*;
 pub use buffer::*;
 pub use surface::*;
 pub use swapchain::*;
+pub use queries::*;
+pub use shader::*;
 
 pub use raw_window_handle;
 
@@ -67,6 +76,7 @@ pub(crate) use ahash::AHashMap as HashMap;
 pub(crate) use ahash::AHashSet as HashSet;
 pub(crate) type IndexMap<K, V> = indexmap::IndexMap<K, V, ahash::RandomState>;
 pub(crate) type IndexSet<T> = indexmap::IndexSet<T, ahash::RandomState>;
+pub(crate) use statics::*;
 
 pub(crate) trait Arced: Sized {
 
@@ -299,8 +309,6 @@ unsafe impl Allocator for AnyAllocator {
         }
     }
 }
-
-pub use AnyAllocator::Global;
 
 /// Constructs [`AnyAllocator`] from allocator `a`.
 pub fn any_allocator<A: AllocatorSendSync + 'static>(a: A) -> AnyAllocator {

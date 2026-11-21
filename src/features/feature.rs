@@ -37,7 +37,7 @@ mod inner {
         pub(super) struct Support: Fn[(&mut FeatureQueryContext) -> Result<(), Error>]
     );
     crate::mem::smallbox!(
-        pub(super) struct Enable: Fn[(&mut FeatureEnableContext<'_>) -> FeatureData]
+        pub(super) struct Enable: Fn[(&mut FeatureEnableContext<'_>) -> Option<FeatureData>]
     );
 }
 
@@ -46,7 +46,7 @@ use obj::FeatureDataObj;
 /// The name of a [`Device`] feature.
 ///
 /// Can be used to get information about an enabled feature.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct FeatureName<T: Send + Sync + 'static> {
     pub(crate) name: ConstName,
     _marker: PhantomData<T>,
@@ -72,19 +72,20 @@ impl<T: Send + Sync + 'static> Display for FeatureName<T> {
     }
 }
 
-pub(super) enum FeatureEnum {
-    Vulkan10(vk_10::Feature),
-    Vulkan11(vk_11::Feature),
-    Vulkan12(vk_12::Feature),
-    Ext(FeatureExt),
+impl<T: Send + Sync + 'static> Clone for FeatureName<T> {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self { name: self.name, _marker: PhantomData }
+    }
 }
+impl<T: Send + Sync + 'static> Copy for FeatureName<T> {}
 
 /// Information about a device feature.
 ///
 /// Used for checking if a device feature is supported by a GPU as well as setting up
 /// relevant structures for enabling those features.
 pub struct DeviceFeature {
-    pub(super) inner: FeatureEnum,
+    pub(super) inner: Feature,
     pub(crate) name: ConstName,
 }
 
@@ -104,13 +105,6 @@ impl FeatureData {
     {
         Self {
             data: FeatureDataObj::new(data),
-        }
-    }
-
-    /// Creates empty trait object.
-    pub fn empty() -> Self {
-        Self {
-            data: FeatureDataObj::new(()),
         }
     }
 
@@ -144,38 +138,20 @@ impl DeviceFeature {
         &self,
         ctx: &mut FeatureQueryContext,
     ) -> Result<(), Error> {
-        match &self.inner {
-            FeatureEnum::Vulkan10(f) => f.query_support(ctx.vulkan_10_features()),
-            FeatureEnum::Vulkan11(f) => f.query_support(ctx.vulkan_11_features()),
-            FeatureEnum::Vulkan12(f) => f.query_support(ctx.vulkan_12_features()),
-            FeatureEnum::Ext(f) => f.query_support(ctx),
-        }
+        self.inner.query_support(ctx)
     }
 
     pub(crate) fn enable_features(
         &self,
         ctx: &mut FeatureEnableContext<'_>,
-    ) -> (ConstName, FeatureData) {
-        (self.name, match &self.inner {
-            FeatureEnum::Vulkan10(f) => f.enable(&mut ctx.enable_vulkan_10_features),
-            FeatureEnum::Vulkan11(f) => {
-                let mut enable = None;
-                ctx.set_features(|mut features| { enable = Some(f.enable(&mut features)); features });
-                enable.unwrap()
-            },
-            FeatureEnum::Vulkan12(f) => {
-                let mut enable = None;
-                ctx.set_features(|mut features| { enable = Some(f.enable(&mut features)); features });
-                enable.unwrap()
-            },
-            FeatureEnum::Ext(f) => f.enable(ctx),
-        })
+    ) -> Option<(ConstName, FeatureData)> {
+        Some((self.name, self.inner.enable(ctx)?))
     }
 }
 
-pub(super) struct FeatureExt(inner::Support<8>, inner::Enable<8>);
+pub(super) struct Feature(inner::Support<8>, inner::Enable<8>);
 
-impl FeatureExt {
+impl Feature {
 
     #[inline]
     fn query_support(
@@ -189,30 +165,29 @@ impl FeatureExt {
     fn enable(
         &self,
         ctx: &mut FeatureEnableContext<'_>,
-    ) -> FeatureData {
+    ) -> Option<FeatureData> {
         (*self.1)(ctx)
     }
 }
 
 /// Creates a [`DeviceFeature`].
 ///
-/// # Safety
-/// Any structure [`added`][1] by custom feature implementations **must** have a valid
-/// [`StructureType`][2] for that structure.
-///
 /// [1]: FeatureEnableContext::set_features
 /// [2]: vk::StructureType
-pub(crate) fn feature_ext<S, E, F: 'static + Send + Sync>(
+pub(super) fn feature<S, E, F: 'static + Send + Sync>(
     fn_support: S,
     fn_enable: E,
     name: FeatureName<F>,
 ) -> DeviceFeature
     where 
         S: Fn(&mut FeatureQueryContext) -> Result<(), Error> + 'static,
-        E: Fn(&mut FeatureEnableContext<'_>) -> FeatureData + 'static
+        E: Fn(&mut FeatureEnableContext<'_>) -> Option<F> + 'static
 {
     DeviceFeature {
-        inner: FeatureEnum::Ext(FeatureExt(inner::Support::new(fn_support), inner::Enable::new(fn_enable))),
+        inner: Feature(
+            inner::Support::new(fn_support),
+            inner::Enable::new(move |ctx| fn_enable(ctx).map(FeatureData::new))
+        ),
         name: name.name,
     }
 }

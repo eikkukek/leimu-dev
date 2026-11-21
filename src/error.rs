@@ -196,6 +196,50 @@ pub(super) mod prelude {
             }
         }
     }
+
+    /// A validation error returned by [`Device::create_shader_module`].
+    #[derive(Debug)]
+    pub enum ShaderValidationError {
+        /// A general validation error.
+        ValidationError(String),
+        /// Specifies that a SPIR-V capability is not supported in the context.
+        CapabilityNotSupported {
+            /// The [`spirv::op::Capability`] that didn't pass validation.
+            capability: spirv::op::Capability,
+            /// The error message.
+            message: Option<String>,
+        },
+    }
+    impl From<spirv_tools::Error> for ShaderValidationError {
+        #[inline]
+        fn from(value: spirv_tools::Error) -> Self {
+            Self::ValidationError(value.to_string())
+        }
+    }
+    impl From<String> for ShaderValidationError {
+        #[inline]
+        fn from(value: String) -> Self {
+            Self::ValidationError(value)
+        }
+    }
+    impl Display for ShaderValidationError {
+
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Self::ValidationError(message) => {
+                    write!(f, "validation of SPIR-V failed because: {message}")
+                },
+                Self::CapabilityNotSupported { capability, message } => {
+                    if let Some(msg) = message {
+                        write!(f, "SPIR-V capability {capability:?} not supported because: {msg}")
+                    } else {
+                        write!(f, "SPIR-V capability {capability:?} not supported")
+                    }
+                },
+            }
+        }
+    }
+    impl error::Error for ShaderValidationError {}
 }
 
 #[macro_export]

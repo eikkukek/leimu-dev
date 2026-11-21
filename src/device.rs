@@ -17,6 +17,8 @@ use crate::{
         DeviceFeature,
         EnumSupport,
         EnumSupportObj,
+        FlagSupport,
+        FlagSupportObj,
         self,
     },
     HashMap,
@@ -300,20 +302,20 @@ impl PollState {
     }
 
     #[inline]
-    unsafe fn clear_cache(&mut self, alloc: &impl Allocator) {
+    unsafe fn clear_cache(&mut self, allocator: &impl Allocator) {
         for c in &self.submit_cache {
             unsafe {
                 let _wait = FixedVec32::from_parts_in(
                     c.wait_semaphores.0,
                     0,
                     c.wait_semaphores.2,
-                    alloc
+                    allocator
                 );
                 let _signal = FixedVec32::from_parts_in(
                     c.signal_semaphores.0,
                     0,
                     c.signal_semaphores.2,
-                    alloc
+                    allocator
                 );
             }
         }
@@ -321,7 +323,7 @@ impl PollState {
     }
 }
 
-struct DeviceLock(MutexGuard<'static, DeviceId>);
+struct DeviceLock { _lock: MutexGuard<'static, DeviceId> }
 
 unsafe impl Send for DeviceLock {}
 unsafe impl Sync for DeviceLock {}
@@ -336,14 +338,15 @@ struct Inner {
     enabled_extensions: HashSet<&'static CStr>,
     queues: HashSet<DeviceQueue>,
     supported_enums: HashMap<TypeId, HashSet<EnumSupportObj>>,
+    supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
     poll_state: Mutex<PollState>,
-    //supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
     //supported_flags64: HashMap<TypeId, FlagSupportObj<Flags64>>,
 }
 
 impl Drop for Inner {
 
     fn drop(&mut self) {
+        crate::features::clear_devices();
         unsafe { self.instance.functions()
             .destroy_device(
                 &self.functions,
@@ -387,7 +390,9 @@ impl Device {
         let mut features = HashMap::new();
         let mut ctx = features::FeatureEnableContext::from_query_ctx(ctx);
         for feature in &attributes.required_features {
-            let (name, data) = feature.enable_features(&mut ctx);
+            let Some((name, data)) = feature.enable_features(&mut ctx) else {
+                continue;
+            };
             match features.entry(name) {
                 Entry::Vacant(vac) => { vac.insert(data); },
                 Entry::Occupied(_) => {
@@ -572,7 +577,7 @@ impl Device {
         log::info!("created `Device` from GPU `{}`", gpu_info.name);
         *lock = device_id;
         Ok(Self { inner: Inner {
-            _lock: DeviceLock(lock),
+            _lock: DeviceLock { _lock: lock, },
             device_id,
             gpu_info,
             functions: guard.into_inner(),
@@ -581,6 +586,7 @@ impl Device {
             enabled_extensions,
             queues,
             supported_enums: ctx.supported_enums,
+            supported_flags32: ctx.supported_flags32,
             poll_state: Mutex::default(),
         }.arced()})
     }
@@ -608,10 +614,19 @@ impl Device {
     }
 
     /// Returns whether an enum `e` is supported.
-    fn is_enum_supported<E: EnumSupport>(&self, e: E) -> bool {
+    #[inline]
+    pub fn is_enum_supported<E: EnumSupport>(&self, e: E) -> bool {
         self.inner.supported_enums
             .get(&TypeId::of::<E>())
             .is_some_and(|supported| supported.contains(e.as_raw()))
+    }
+
+    /// Returns whether flags `f` are supported.
+    #[inline]
+    pub fn are_flags32_supported<F: FlagSupport<Flags32>>(&self, f: F) -> bool {
+        self.inner.supported_flags32
+            .get(&TypeId::of::<F>())
+            .is_some_and(|supported| supported.contains(f.as_raw()))
     }
 
     /// Returns whether `format` is supported by this device.
@@ -622,10 +637,18 @@ impl Device {
     }
 
     /// Gets data associated with a feature.
+    #[inline]
     pub fn get_feature<T: Send + Sync>(&self, name: FeatureName<T>) -> Option<&T> {
         self.inner.features
             .get(&name.name)
             .map(|f| f.get().unwrap())
+    }
+
+    /// Retruns whether a feature is enabled.
+    #[inline]
+    pub fn is_feature_enabled<T: Send + Sync>(&self, name: FeatureName<T>) -> bool {
+        self.get_feature(name)
+            .is_some()
     }
 
     /// Returns whether a Vulkan extension with the exact `Name string` is enabled.
@@ -668,10 +691,10 @@ impl Device {
     pub fn create_buffer(
         &self,
         attributes: BufferAttributes<'_>,
-        allocator: AnyAllocator,
+        allocator: Option<AnyAllocator>,
     ) -> Result<Buffer, Error>
     {
-        Buffer::new(self.clone(), attributes, allocator)
+        Buffer::new(self.clone(), attributes, allocator.unwrap_or_default())
     }
 
     /// Gets image creation limits for a set of parameters for a to-be created [`Image`] which are:
@@ -909,10 +932,10 @@ impl Device {
     pub fn create_image(
         &self,
         attributes: ImageAttributes<'_>,
-        allocator: AnyAllocator,
+        allocator: Option<AnyAllocator>,
     ) -> Result<Image, Error>
     {
-        Image::new(self.clone(), &attributes, allocator)
+        Image::new(self.clone(), &attributes, allocator.unwrap_or_default())
     }
 
     /// Crates an [`ImageView`] with `image`, `attributes` and `allocator`.
@@ -934,10 +957,10 @@ impl Device {
         &self,
         image: Image,
         attributes: ImageViewAttributes<'_>,
-        allocator: AnyAllocator,
+        allocator: Option<AnyAllocator>,
     ) -> Result<ImageView, Error>
     {
-        ImageView::new(image, attributes, allocator)
+        ImageView::new(image, attributes, allocator.unwrap_or_default())
     }
 
     /// Creates a [`CommandPool`].
@@ -962,7 +985,7 @@ impl Device {
 
     /// Creates a [`Swapchain`].
     ///
-    /// # valid usage
+    /// # Valid usage
     /// - The [`swapchain`][3] feature **must** be enabled.
     /// - `present_queue` **must** be capable of presentation.
     /// - The [instance][1] of `surface` **must** be the same as the [`instance`][2] of `self` (will
@@ -987,16 +1010,36 @@ impl Device {
         )
     }
 
+    /// Creates a [`ShaderModule`]
+    ///
+    /// # Parameters
+    /// - `attributes`: the parameters used to create the module.
+    /// - `allocator`: this is **not** a GPU memory allocator, but a regular allocator implementing
+    ///   [`Allocator`]. It is used for allocating needed data for of the [`ShaderModule`] structure.
+    ///   If the allocator fails to allocate, this function will panic. The total
+    ///   allocation size can be queried with [`ShaderModuleAttributes::calculate_allocation_size`].
+    ///
+    /// # Valid usage
+    /// Valid usage is described in [`ShaderModuleAttributes`].
+    #[inline]
+    pub fn create_shader_module(
+        &self,
+        attributes: ShaderModuleAttributes<'_>,
+        allocator: Option<AnyAllocator>,
+    ) -> Result<ShaderModule, ShaderValidationError> {
+        ShaderModule::new(self.clone(), attributes, allocator.unwrap_or_default())
+    }
+
     /// Advances the runtime once.
-    pub fn poll<'a, C, A>(
+    pub fn poll<'a, C>(
         &self,
         command_buffers: C,
-        alloc: A,
+        allocator: Option<&dyn Allocator>,
     ) -> Result<Poll, Error>
         where
             C: IntoIterator<Item = &'a mut CommandBuffer>,
-            A: Allocator + Clone,
     {
+        let allocator = allocator.unwrap_or(&std::alloc::Global);
         let mut state = self.inner.poll_state.lock();
         let mut poll_id = state.id + 1;
         for (i, b) in command_buffers.into_iter().enumerate() {
@@ -1009,19 +1052,19 @@ impl Device {
                 signal_semaphores,
             } = b.poll(
                 poll_id,
-                &alloc
+                &allocator
             ).describe_err(|| format!("failed to poll `CommandBuffer` at index `{i}`"))?;
             let (cb, c_wait_semaphores, c_signal_semaphores) = state.get_submit_cache(queue);
             *cb = command_buffer;
             *c_wait_semaphores = wait_semaphores
                 .into_iter()
                 .map(|(h, v)| SemaphoreSubmitInfo { semaphore: h, value: v, stage_mask: wait_scope, })
-                .collect_in::<FixedVec32<_, _>>(alloc.clone()).describe_err("allocation with `alloc` failed")?
+                .collect_in::<FixedVec32<_, _>>(allocator).describe_err("allocation with `alloc` failed")?
                 .into_parts();
             *c_signal_semaphores = signal_semaphores
                 .into_iter()
                 .map(|(h, v)| SemaphoreSubmitInfo { semaphore: h, value: v, stage_mask: signal_scope, })
-                .collect_in::<FixedVec32<_, _>>(alloc.clone()).describe_err("allocation with `alloc` failed")?
+                .collect_in::<FixedVec32<_, _>>(allocator).describe_err("allocation with `alloc` failed")?
                 .into_parts();
             poll_id += 1;
         }
@@ -1043,7 +1086,7 @@ impl Device {
                     value,
                     stage_mask,
                     ..Default::default()
-                }).collect_in(&alloc).describe_err("allocation with `alloc` failed")?;
+                }).collect_in(&allocator).describe_err("allocation with `alloc` failed")?;
             let signal_semaphore_infos: FixedVec32<_, _> = unsafe { slice::from_raw_parts(
                     signal_semaphores.0.as_ptr(),
                     signal_semaphores.1 as usize,
@@ -1054,7 +1097,7 @@ impl Device {
                     value,
                     stage_mask,
                     ..Default::default()
-                }).collect_in(&alloc).describe_err("allocation with `alloc` failed")?;
+                }).collect_in(&allocator).describe_err("allocation with `alloc` failed")?;
             let submits = vk::SubmitInfo2::default()
                 .wait_semaphore_infos(&wait_semaphore_infos)
                 .command_buffer_infos(&command_buffer_infos)
@@ -1069,7 +1112,7 @@ impl Device {
             }
         }
         unsafe {
-            state.clear_cache(&alloc);
+            state.clear_cache(&allocator);
         }
         Ok(Poll { })
     }

@@ -46,13 +46,12 @@ struct Fence {
 impl Fence {
 
     #[inline]
-    pub fn signaled(device: Device) -> Self {
+    pub fn new(device: Device) -> Self {
         Self {
             handle: unsafe {
                 device.functions()
                     .create_fence(
-                        &vk::FenceCreateInfo::default()
-                            .flags(vk::FenceCreateFlags::SIGNALED),
+                        &vk::FenceCreateInfo::default(),
                         None,
                     ).expect("failed to create `VkFence`")
             },
@@ -102,7 +101,7 @@ impl Drop for Inner<'_> {
             let swapchain_functions = self.device
                 .get_feature(vk_khr::swapchain::NAME)
                 .unwrap()
-                .functions(&self.device);
+                .get(&self.device);
             unsafe {
                 self.device.functions()
                     .device_wait_idle().ok();
@@ -171,12 +170,10 @@ impl<'a> Swapchain<'a> {
         if let Some(label) = label {
             log::trace!("validating `Swapchain` `{label}`");
         }
-        if device
-            .get_feature(vk_khr::swapchain::NAME)
-            .is_none()
+        if !device.is_feature_enabled(vk_khr::swapchain::NAME)
         {
             Err(err!(
-                "attempting to create `Swapchain` when the `swapchain` feature is not enabled",
+                "attempting to create `Swapchain` when the `vk_khr::swapchain` feature is not enabled",
             ))?
         }
         let command_pool = device.create_command_pool(None, present_queue)
@@ -254,7 +251,7 @@ impl<'a> Swapchain<'a> {
         let swapchain_functions = self.device()
             .get_feature(vk_khr::swapchain::NAME)
             .unwrap()
-            .functions(self.device());
+            .get(self.device());
         if let Some(handle) = lock.handle.take() {
             unsafe {
                 self.device()
@@ -422,14 +419,15 @@ impl<'a> Swapchain<'a> {
                         range: default(),
                         component_mapping: default(),
                     },
-                    Global,
+                    None,
                 ).expect("failed to create swapchain image view")
             }).collect();
         lock.in_flight_fences.resize_with(
-            image_count,
-            || Fence::signaled(device.clone()),
+            image_views.len(),
+            || Fence::new(device.clone()),
         );
-        lock.command_buffers.try_resize_with(image_count,
+        lock.command_buffers.try_resize_with(
+            image_views.len(),
             || self.inner.command_pool
                 .allocate_command_buffer()
                 .map(CommandBuffer::with_binary_semaphore)
@@ -466,12 +464,9 @@ impl<'a> Swapchain<'a> {
         let device = self.device();
         let swapchain_device = device
             .get_feature(vk_khr::swapchain::NAME)
-            .unwrap()
-            .functions(device);
+            .unwrap().get(device);
         let timeout_nanos = timeout.as_nanos() as u64;
         unsafe { 
-            device.functions()
-                .reset_fences(&[fence]).ok();
             let index = match swapchain_device
                 .acquire_next_image(
                     handle,
@@ -514,6 +509,8 @@ impl<'a> Swapchain<'a> {
                     timeout.as_secs_f64(),
                 ))?
             }
+            device.functions()
+                .reset_fences(&[fence]).ok();
             Ok((index, lock))
         }
     }
@@ -523,7 +520,7 @@ impl<'a> Swapchain<'a> {
         &self,
         present_parameters: PresentParameters<'_>,
         timeout: Duration,
-        alloc: AnyAllocator,
+        allocator: Option<&dyn Allocator>,
         f: F,
     ) -> Result<(), Error>
         where
@@ -550,12 +547,12 @@ impl<'a> Swapchain<'a> {
             },
         );
         recorder.finish();
-        let _poll = device.poll([&mut *command_buffer], alloc)?;
+        let _poll = device.poll([&mut *command_buffer], allocator)?;
         lock.frame_index = (lock.frame_index + 1) % lock.in_flight_fences.len();
         let swapchain_functions = device
             .get_feature(vk_khr::swapchain::NAME)
             .unwrap()
-            .functions(device);
+            .get(device);
         let swapchains = &[lock.handle.unwrap()];
         let image_indices = &[image_index];
         unsafe {

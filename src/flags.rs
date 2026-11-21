@@ -181,9 +181,13 @@ bitflags! {
     #[repr(transparent)]
     #[derive(Clone, Copy, ByteEq, ByteHash, Debug)]
     pub struct ResolveModeFlags: Flags32 {
+        /// Takes the value of the sample at index `0`.
         const SAMPLE_ZERO   = 0x1;
+        /// Takes the average of all samples.
         const AVERAGE       = 0x2;
+        /// Takes the minimum of all samples.
         const MIN           = 0x4;
+        /// Takes the maximum of all samples.
         const MAX           = 0x8;
     }
 }
@@ -251,5 +255,125 @@ bitflags! {
         /// does not set the blending mode using native window system commands, then a
         /// platform-specific default will be use.
         const INHERIT = 0x8;
+    }
+}
+bitflags! {
+    /// A bitmask specifying which subgroup operations are supppported in a shader.
+    #[repr(transparent)]
+    #[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash, Debug)]
+    pub struct SubgroupFeatures: Flags32 {
+        /// Specifies that the `GroupNonUniform` SPIR-V capability is supported.
+        const BASIC = 0x1;
+        /// Specifies that the `GroupNonUniformVote` SPIR-V capability is supported.
+        const VOTE = 0x2;
+        /// Specifies that the `GroupNonUniformArithmetic` SPIR-V capability is supported.
+        const ARITHMETIC = 0x4;
+        /// Specifies that the `GroupNonUniformBallot` SPIR-V capability is supported.
+        const BALLOT = 0x8;
+        /// Specifies that the `GroupNonUniformShuffle` SPIR-V capability is supported.
+        const SHUFFLE = 0x10;
+        /// Specifies that the `GroupNonUniformShuffleRelative` SPIR-V capability is supported.
+        const SHUFFLE_RELATIVE = 0x20;
+        /// Specifies that the `GroupNonUniformClustered` SPIR-V capability is supported.
+        const CLUSTERED = 0x40;
+        /// Specifies that the `GroupNonUniformQuad` SPIR-V capability is supported.
+        const QUAD = 0x80;
+        /// Specifies that the `GroupNonRotateKHR` SPIR-V capability is supported.
+        const ROTATE = 0x200;
+        /// Specifies that SPIR-V modules **can** use the `ClusterSize` operand to `OpGroupNonUniformRotateKHR`.
+        const ROTATE_CLUSTERED = 0x400;
+    }
+}
+unsafe impl NoUninit for SubgroupFeatures {}
+__bitflags_display!(SubgroupFeatures);
+bitflags! {
+    /// A bitmask specifying supported descriptor indexing features.
+    #[repr(transparent)]
+    #[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash, Debug)]
+    pub struct DescriptorIndexingFeatures: Flags32 {
+        /// Specifies that [`shader_sampled_image_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_sampled_image_array_dynamic_indexing`]: vk_10::shader_sampled_image_array_dynamic_indexing
+        const SAMPLED_IMAGE_ARRAY_DYNAMIC_INDEXING = 0x0001;
+        /// Specifies that [`shader_storage_buffer_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_storage_buffer_array_dynamic_indexing`]: vk_10::shader_storage_buffer_array_dynamic_indexing
+        const STORAGE_BUFFER_ARRAY_DYNAMIC_INDEXING = 0x0002;
+        /// Specifies that [`shader_uniform_buffer_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_uniform_buffer_array_dynamic_indexing`]: vk_10::shader_uniform_buffer_array_dynamic_indexing
+        const UNIFORM_BUFFER_ARRAY_DYNAMIC_INDEXING = 0x0004;
+        /// Specifies that [`shader_storage_image_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_storage_image_array_dynamic_indexing`]: vk_10::shader_storage_image_array_dynamic_indexing
+        const STORAGE_IMAGE_ARRAY_DYNAMIC_INDEXING = 0x0008;
+        /// Specifies that [`shader_input_attachment_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_input_attachment_array_dynamic_indexing`]: vk_12::shader_input_attachment_array_dynamic_indexing
+        const INPUT_ATTACHMENT_ARRAY_DYNAMIC_INDEXING = 0x0010;
+        /// Specifies that [`vk_12::shader_uniform_texel_buffer_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_uniform_texel_buffer_array_dynamic_indexing`]: vk_12::shader_uniform_texel_buffer_array_dynamic_indexing
+        const UNIFORM_TEXEL_BUFFER_ARRAY_DYNAMIC_INDEXING = 0x0020;
+        /// Specifies that [`shader_storage_texel_buffer_array_dynamic_indexing`] is supported.
+        ///
+        /// [`shader_storage_texel_buffer_array_dynamic_indexing`]: vk_12::shader_storage_texel_buffer_array_dynamic_indexing
+        const STORAGE_TEXEL_BUFFER_ARRAY_DYNAMIC_INDEXING = 0x0040;
+        /// Specifies that [`shader_uniform_buffer_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_uniform_buffer_array_non_uniform_indexing`]: vk_12::shader_uniform_buffer_array_non_uniform_indexing
+        const UNIFORM_BUFFER_ARRAY_NON_UNIFORM_INDEXING = 0x0080;
+        /// Specifies that [`shader_sampled_image_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_sampled_image_array_non_uniform_indexing`]: vk_12::shader_sampled_image_array_non_uniform_indexing
+        const SAMPLED_IMAGE_ARRAY_NON_UNIFORM_INDEXING = 0x0100;
+        /// Specifies that [`shader_storage_buffer_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_storage_buffer_array_non_uniform_indexing`]: vk_12::shader_storage_buffer_array_non_uniform_indexing
+        const STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING = 0x0200;
+        /// Specifies that [`shader_storage_image_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_storage_image_array_non_uniform_indexing`]: vk_12::shader_storage_image_array_non_uniform_indexing
+        const STORAGE_IMAGE_ARRAY_NON_UNIFORM_INDEXING = 0x0400;
+        /// Specifies that [`shader_input_attachment_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_input_attachment_array_non_uniform_indexing`]: vk_12::shader_input_attachment_array_non_uniform_indexing
+        const INPUT_ATTACHMENT_ARRAY_NON_UNIFORM_INDEXING = 0x0800;
+        /// Specifies that [`shader_uniform_texel_buffer_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_uniform_texel_buffer_array_non_uniform_indexing`]: vk_12::shader_uniform_texel_buffer_array_non_uniform_indexing
+        const UNIFORM_TEXEL_BUFFER_ARRAY_NON_UNIFORM_INDEXING = 0x1000;
+        /// Specifies that [`shader_storage_texel_buffer_array_non_uniform_indexing`] is supported.
+        ///
+        /// [`shader_storage_texel_buffer_array_non_uniform_indexing`]: vk_12::shader_storage_texel_buffer_array_non_uniform_indexing
+        const STORAGE_TEXEL_BUFFER_ARRAY_NON_UNIFORM_INDEXING = 0x2000;
+        /// Specifies that [`runtime_descriptor_array`] is supported.
+        ///
+        /// [`runtime_descriptor_array`]: vk_12::runtime_descriptor_array
+        const RUNTIME_DESCRIPTOR_ARRAY = 0x4000;
+    }
+}
+unsafe impl NoUninit for DescriptorIndexingFeatures {}
+__bitflags_display!(DescriptorIndexingFeatures);
+impl features::FlagSupport<Flags32> for DescriptorIndexingFeatures {
+    
+    #[inline]
+    fn to_obj(&self) -> features::FlagSupportObj<Flags32> {
+        features::FlagSupportObj::new(*self)
+    }
+
+    #[inline]
+    fn as_raw(&self) -> Flags32 {
+        self.bits()
+    }
+
+    #[inline]
+    fn add_flags(&mut self, rhs: Flags32) {
+        Self::from_bits_retain(self.bits() | rhs);
+    }
+
+    #[inline]
+    fn contains(&self, rhs: Flags32) -> bool {
+        self.contains(Self::from_bits_retain(rhs))
     }
 }

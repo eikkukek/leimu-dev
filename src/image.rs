@@ -198,7 +198,7 @@ pub struct ImageCreationLimits {
     pub(crate) create_flags: vk::ImageCreateFlags,
 }
 
-/// Specifies parameters for creating an [`Image`].
+/// Specifies parameters for [`Image`] creation.
 ///
 /// This **can** be used to create an [`Image`] with [`Device::create_image`].
 ///
@@ -356,10 +356,10 @@ impl Image
             }
             if (attributes.usage.contains(ImageUsages::STORAGE)
                     || attributes.stencil_usage.is_some_and(|usage| usage.contains(ImageUsages::STORAGE))
-                ) && device.get_feature(vk_10::shader_storage_image_multisample::NAME).is_none()
+                ) && !device.is_feature_enabled(vk_10::shader_storage_image_multisample::NAME)
             {
                 Err(err!(
-                    "`samples` is not `X1` and `usage` contains `STORAGE`, but the `shader_storage_image_multisample` feature is not enabled",
+                    "`samples` is not `X1` and `usage` contains `STORAGE`, but the `vk_10::shader_storage_image_multisample` feature is not enabled",
                 ))?
             }
         }
@@ -793,7 +793,7 @@ impl Image {
         let mut scoped_states = NonNull::dangling();
         let mut states = NonNull::dangling();
         let pack_allocation = pack_alloc(
-            &Global,
+            &AnyAllocator::Global,
             [
                 pack_block(&mut inner, 1).unwrap(),
                 pack_block(&mut scoped_states, states_len).unwrap(),
@@ -843,7 +843,7 @@ impl Image {
         Self {
             label: (None, 0),
             inner,
-            allocator: Global,
+            allocator: AnyAllocator::Global,
         }
     }
 }

@@ -1,5 +1,6 @@
 use super::*;
 
+/// A lifetimed image-view handle.
 #[repr(transparent)]
 pub struct ImageViewHandle<'a> {
     image_view: &'a ImageView,
@@ -7,6 +8,7 @@ pub struct ImageViewHandle<'a> {
 
 impl<'a> ImageViewHandle<'a> {
 
+    /// Creates `self` from a reference to `image_view`.
     #[inline]
     pub fn from_ref(image_view: &'a ImageView) -> Self {
         Self { image_view }
@@ -64,7 +66,7 @@ impl<T> HasImageViewExt for T
     where T: ?Sized + HasImageView
 {}
 
-/// Specifies parameters for creating an [`ImageView`].
+/// Specifies parameters for [`ImageView`] creation.
 ///
 /// This **can** be used to create an [`ImageView`] with [`Device::create_image_view`].
 ///
@@ -87,9 +89,7 @@ pub type ImageViewAttributes<'a> = attributes::ImageViewAttributes<&'a str>;
 
 impl ImageViewAttributes<'_> {
 
-    /// Calculates how much extra (CPU) memory the created [`Image`] will allocate.
-    ///
-    /// Equal to to `56 + size_of::<Image>() + label.len()`.
+    /// Calculates how much extra (CPU) memory the created [`ImageView`] will allocate.
     #[inline]
     pub fn calculate_allocation_size(&self) -> usize {
         size_of::<Inner>() + self.label.map(|l| l.len()).unwrap_or_default()
@@ -250,12 +250,11 @@ impl ImageView
                     }
                 },
                 ImageViewDim::CubeArray => {
-                    if image.device()
-                        .get_feature(vk_10::image_cube_array::NAME)
-                        .is_none()
+                    if !image.device()
+                        .is_feature_enabled(vk_10::image_cube_array::NAME)
                     {
                         Err(err!(
-                            "`dimensions` is `CubeArray`, but the `image_cube_array` feature is not enabled",
+                            "`dimensions` is `CubeArray`, but the `vk_10::image_cube_array` feature is not enabled",
                         ))?
                     }
                     if !view_compatibility.contains(ImageViewCompatibility::CUBE) {
@@ -287,7 +286,7 @@ impl ImageView
                     ))?
                 }
             }
-            let mut true_range = vk::ImageSubresourceRange {
+            let true_range = vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::from_raw(view_aspects.bits()),
                 base_mip_level: attributes.range.base_mip_level,
                 level_count,

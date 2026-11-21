@@ -59,6 +59,8 @@ impl<'a> PipelineStateContextInner<'a> {
 pub struct PipelineStateContext<'a> {
     inner: PipelineStateContextInner<'a>,
     color_attachment_count: u32,
+    line_rasterization_mode: LineRasterizationMode,
+    stippled_lines: bool,
 }
 
 impl<'a> PipelineStateContext<'a> {
@@ -261,11 +263,10 @@ pub mod pipeline_state {
                 Err(state_not_dynamic_err(Self::NAME))?
             }
             if self.line_width != 1.0 &&
-                device.get_feature(vk_10::wide_lines::NAME)
-                    .is_none()
+                !device.is_feature_enabled(vk_10::wide_lines::NAME)
             {
                 Err(err!(
-                    "`line_width` is not `1.0` but the `wide_lines` feature is not enabled"
+                    "`line_width` is not `1.0` but the `vk_10::wide_lines` feature is not enabled"
                 ))?
             }
             Ok(())
@@ -321,11 +322,10 @@ pub mod pipeline_state {
                 Err(state_not_dynamic_err(Self::NAME))?
             }
             if self.clamp != 0.0 &&
-                device.get_feature(vk_10::depth_bias_clamp::NAME)
-                    .is_none()
+                !device.is_feature_enabled(vk_10::depth_bias_clamp::NAME)
             {
                 Err(err!(
-                    "`clamp` is not `0.0` and the `depth_bias_clamp` feature is not enabled"
+                    "`clamp` is not `0.0` and the `vk_10::depth_bias_clamp` feature is not enabled"
                 ))?
             }
             Ok(())
@@ -1066,18 +1066,18 @@ pub mod pipeline_state {
                 ))?
             }
             if any_input_rate_divisor {
-                let feature = device
+                let properties = device
                     .get_feature(vk_14::vertex_attribute_instance_rate_divisor::NAME)
                     .ok_or_else(|| err!(
-                        "`divisor` is not `1` and `vertex_attribute_instance_rate_divisor` feature is not enabled"
+                        "`divisor` is not `1` and `vk_14::vertex_attribute_instance_rate_divisor` feature is not enabled"
                     ))?;
                 if zero_divisor {
-                    if !feature.enabled_features().zero_divisor {
+                    if !device.is_feature_enabled(vk_14::vertex_attribute_instance_rate_zero_divisor::NAME) {
                         Err(err!(
-                            "`divisor` is zero and `vertex_attribute_instance_divisor::zero_divisor` feature is not enabled"
+                            "`divisor` is zero and `vk_14::vertex_attribute_instance_divisor::zero_divisor` feature is not enabled"
                         ))?
                     }
-                    if !feature.properties().supports_non_zero_first_instance &&
+                    if !properties.supports_non_zero_first_instance &&
                         let Some(d) = ctx.inner_mut().get_dynamic_mut()
                     {
                         for b in self.bindings.iter() {
@@ -1124,7 +1124,7 @@ pub mod pipeline_state {
                 .offset(attr.offset)
             ));
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_vertex_input(
                         command_buffer.handle(),
                         &bindings,
@@ -1172,10 +1172,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_13::extended_dynamic_state2::NAME)
+                .get_feature(vk_ext::extended_dynamic_state2_patch_control_points::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_patch_control_points(
                         command_buffer.handle(),
                         self.num_points.get()
@@ -1206,10 +1206,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_13::extended_dynamic_state2::NAME)
+                .get_feature(vk_ext::extended_dynamic_state2_logic_op::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_logic_op(
                         command_buffer.handle(),
                         (*self).into()
@@ -1241,10 +1241,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_tessellation_doman_origin::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_tessellation_domain_origin(
                         command_buffer.handle(),
                         (*self).into()
@@ -1273,11 +1273,10 @@ pub mod pipeline_state {
                 Err(state_not_dynamic_err(Self::NAME))?
             }
             if self.value &&
-                device.get_feature(vk_10::depth_clamp::NAME)
-                .is_none()
+                !device.is_feature_enabled(vk_10::depth_clamp::NAME)
             {
                 Err(err!(
-                    "`DepthClampEnable` is `true`, but the `depth_clamp` feature is not enabled"
+                    "`DepthClampEnable` is `true`, but the `vk_10::depth_clamp` feature is not enabled"
                 ))?
             }
             Ok(())
@@ -1290,10 +1289,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_depth_clamp_enable::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_depth_clamp_enable(
                         command_buffer.handle(),
                         self.value
@@ -1324,10 +1323,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_polygon_mode::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_polygon_mode(
                         command_buffer.handle(),
                         (*self).into()
@@ -1363,10 +1362,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_rasterization_samples::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_rasterization_samples(
                         command_buffer.handle(),
                         self.sample_count.into()
@@ -1416,11 +1415,11 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_sample_mask::NAME)
                 .unwrap();
             unsafe {
                 let mask = self.mask.unwrap_or([u32::MAX; 2]);
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_sample_mask(
                         command_buffer.handle(),
                         SampleCountFlags::TYPE_64,
@@ -1460,10 +1459,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_alpha_to_coverage_enable::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_alpha_to_coverage_enable(
                         command_buffer.handle(),
                         self.value
@@ -1497,11 +1496,10 @@ pub mod pipeline_state {
                 Err(state_not_dynamic_err(Self::NAME))?
             }
             if self.value &&
-                device.get_feature(vk_10::alpha_to_one::NAME)
-                .is_none()
+                !device.is_feature_enabled(vk_10::alpha_to_one::NAME)
             {
                 Err(err!(
-                    "`AlphaToOneEnable` is `true` but the `alpha_to_one` feature is not enabled."
+                    "`AlphaToOneEnable` is `true` but the `vk_10::alpha_to_one` feature is not enabled."
                 ))?
             }
             Ok(())
@@ -1514,11 +1512,11 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_alpha_to_one_enable::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
-                    .cmd_set_alpha_to_coverage_enable(
+                feature.get(device)
+                    .cmd_set_alpha_to_one_enable(
                         command_buffer.handle(),
                         self.value
                     );
@@ -1549,11 +1547,10 @@ pub mod pipeline_state {
                 Err(state_not_dynamic_err(Self::NAME))?
             }
             if self.value &&
-                device.get_feature(vk_10::logic_op::NAME)
-                .is_none()
+                !device.is_feature_enabled(vk_10::logic_op::NAME)
             {
                 Err(err!(
-                    "`LogicOpEnable` is `true` but the `logic_op` feature is not enabled."
+                    "`LogicOpEnable` is `true` but the `vk_10::logic_op` feature is not enabled."
                 ))?
             }
             Ok(())
@@ -1566,10 +1563,10 @@ pub mod pipeline_state {
             _allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_logic_op_enable::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_logic_op_enable(
                         command_buffer.handle(),
                         self.value
@@ -1614,7 +1611,7 @@ pub mod pipeline_state {
             allocator: &AnyAllocator,
         ) {
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_color_blend_enable::NAME)
                 .unwrap();
             let values: FixedVec32<_, _> = self
                 .iter()
@@ -1622,7 +1619,7 @@ pub mod pipeline_state {
                 .collect_in(allocator)
                 .expect("allocation failed");
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_color_blend_enable(
                         command_buffer.handle(),
                         0,
@@ -1635,7 +1632,7 @@ pub mod pipeline_state {
     pub type ColorBlendEquations = VecWrapper<SmallVec<[ColorBlendEquation; 2]>>;
     impl PipelineStateObject for ColorBlendEquations {
 
-        const KIND: PipelineStateKind = PipelineStateKind::ColorBlendEquation;
+        const KIND: PipelineStateKind = PipelineStateKind::ColorBlendEquations;
 
         fn check_validity(
             &self,
@@ -1655,10 +1652,9 @@ pub mod pipeline_state {
             }
             if self.iter().any(|eq| eq.uses_second_source()) 
             {
-                if device.get_feature(vk_10::dual_src_blend::NAME)
-                    .is_none()
+                if !device.is_feature_enabled(vk_10::dual_src_blend::NAME)
                 {
-                    Err(err!("`ColorBlendEquations` uses dual source blending, but the `dual_src_blend` feature is not enabled"))?
+                    Err(err!("`ColorBlendEquations` uses dual source blending, but the `vk_10::dual_src_blend` feature is not enabled"))?
                 }
                 if ctx.color_attachment_count > device.gpu_info().limits.max_fragment_dual_src_attachments() {
                     Err(err!(
@@ -1680,10 +1676,10 @@ pub mod pipeline_state {
         ) {
             use tuhka::vk::ColorBlendEquationEXT;
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_color_blend_equation::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_color_blend_equation(
                         command_buffer.handle(),
                         0,
@@ -1730,10 +1726,10 @@ pub mod pipeline_state {
         ) {
             use tuhka::vk::ColorComponentFlags;
             let feature = device
-                .get_feature(vk_ext::extended_dynamic_state3::NAME)
+                .get_feature(vk_ext::extended_dynamic_state3_color_write_mask::NAME)
                 .unwrap();
             unsafe {
-                feature.functions(device)
+                feature.get(device)
                     .cmd_set_color_write_mask(
                         command_buffer.handle(),
                         0,
@@ -1742,6 +1738,159 @@ pub mod pipeline_state {
             }
         }
     }
-    pub struct LineRasterizationMode;
-    pub struct LineStippleEnable;
+    pub use crate::LineRasterizationMode;
+    impl PipelineStateObject for LineRasterizationMode {
+
+        const KIND: PipelineStateKind = PipelineStateKind::LineRasterizationMode;
+
+        fn check_validity(
+            &self,
+            device: &Device,
+            ctx: &mut PipelineStateContext,
+        ) -> Result<(), Error> {
+            if ctx.inner().is_dynamic_and(|d| !d.is_state_dynamic(Self::KIND)) {
+                Err(state_not_dynamic_err("LineRasterizationMode"))?
+            }
+            if ctx.stippled_lines {
+                match self {
+                    Self::Default => {},
+                    Self::Rectangular => if !device.is_feature_enabled(vk_14::stippled_rectangular_lines::NAME) {
+                        Err(err!(
+                            "line-stipple is enabled and rasterization mode is `Rectangular`, but the {}",
+                            "`vk_14::stippled_rectangular_lines` feature is not enabled",
+                        ))?
+                    },
+                    Self::Bresenham => if !device.is_feature_enabled(vk_14::stippled_bresenham_lines::NAME) {
+                        Err(err!(
+                            "line-stipple is enabled and rasterization mode is `Bresenham`, but the {}",
+                            "`vk_14::stippled_bresenham_lines` feature is not enabled",
+                        ))?
+                    },
+                    Self::RectangularSmooth => if !device.is_feature_enabled(vk_14::stippled_smooth_lines::NAME) {
+                        Err(err!(
+                            "line-stipple is enabled and rasterization mode is `RectangularSmooth`, but the {}",
+                            "`vk_14::stippled_smooth_lines` feature is not enabled",
+                        ))?
+                    }
+                }
+            } else {
+                match self {
+                    Self::Default => {},
+                    Self::Rectangular => if !device.is_feature_enabled(vk_14::rectangular_lines::NAME) {
+                        Err(err!(
+                            "rasterization mode is `Rectangular`, but the `vk_14::rectangular_lines` feature is not enabled",
+                        ))?
+                    },
+                    Self::Bresenham => if !device.is_feature_enabled(vk_14::bresenham_lines::NAME) {
+                        Err(err!(
+                            "rasterization mode is `Bresenham`, but the `vk_14::bresenham_lines` feature is not enabled",
+                        ))?
+                    },
+                    Self::RectangularSmooth => if !device.is_feature_enabled(vk_14::smooth_lines::NAME) {
+                        Err(err!(
+                            "rasterization mode is `RectangularSmooth`, but the `vk_14::smooth_lines` feature is not enabled",
+                        ))?
+                    }
+                }
+            }
+            Ok(())
+        }
+
+        unsafe fn cmd_set_dynamic(
+            &self,
+            device: &Device,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
+        ) {
+            let feature = device
+                .get_feature(vk_ext::extended_dynamic_state3_line_rasterization_mode::NAME)
+                .unwrap();
+            unsafe {
+                feature.get(device)
+                    .cmd_set_line_rasterization_mode(
+                        command_buffer.handle(),
+                        (*self).into()
+                    );
+            }
+        }
+    }
+    /// Specifies whether stippled line rasterization is enabled.
+    ///
+    /// # Default values
+    /// - [`enable`][Self::enable]: `false`
+    #[derive()]
+    #[repr(C)]
+    #[derive(Default, Clone, Copy, NoUninit, ByteHash, ByteEq)]
+    pub struct LineStippleEnable {
+        /// Whether to enable stippled line rasterization.
+        ///
+        /// # Valid usage
+        /// If this is `true`, and if the current line rasterization mode is:
+        /// - [`Rectangular`] the [`vk_14::stippled_rectangular_lines`] feature **must** be
+        ///   enabled, or if its
+        /// - [`Bresenham`] the [`vk_14::stippled_bresenham_lines`] feature **must** be
+        ///   enabled, or if it is
+        /// - [`RectangularSmooth`] the [`vk_14::stippled_smooth_lines`] feature **must** be
+        ///   enabled.
+        pub enable: bool
+    }
+
+    impl PipelineStateObject for LineStippleEnable {
+
+        const KIND: PipelineStateKind = PipelineStateKind::LineStippleEnable;
+
+        fn check_validity(
+            &self,
+            device: &Device,
+            ctx: &mut PipelineStateContext,
+        ) -> Result<(), Error>
+        {
+            if ctx.inner().is_dynamic_and(|d| !d.is_state_dynamic(Self::KIND)) {
+                Err(state_not_dynamic_err("LineStippleEnable"))?
+            }
+            if self.enable {
+                match ctx.line_rasterization_mode {
+                    LineRasterizationMode::Default => {},
+                    LineRasterizationMode::Rectangular => if !device.is_feature_enabled(vk_14::stippled_rectangular_lines::NAME) {
+                        Err(err!(
+                            "line-stipple is enabled and rasterization mode is `Rectangular`, but the {}",
+                            "`vk_14::stippled_rectangular_lines` feature is not enabled",
+                        ))?
+                    },
+                    LineRasterizationMode::Bresenham => if !device.is_feature_enabled(vk_14::stippled_bresenham_lines::NAME) {
+                        Err(err!(
+                            "line-stipple is enabled and rasterization mode is `Bresenham`, but the {}",
+                            "`vk_14::stippled_bresenham_lines` feature is not enabled",
+                        ))?
+                    },
+                    LineRasterizationMode::RectangularSmooth => if !device.is_feature_enabled(vk_14::stippled_smooth_lines::NAME) {
+                        Err(err!(
+                            "line-stipple is enabled and rasterization mode is `RectangularSmooth`, but the {}",
+                            "`vk_14::stippled_smooth_lines` feature is not enabled",
+                        ))?
+                    }
+                }
+            }
+            Ok(())
+        }
+
+        unsafe fn cmd_set_dynamic(
+            &self,
+            device: &Device,
+            command_buffer: CommandBuffer,
+            _allocator: &AnyAllocator,
+        )
+        {
+            let feature = device
+                .get_feature(vk_ext::extended_dynamic_state3_line_stipple_enable::NAME)
+                .unwrap();
+            unsafe {
+                feature.get(device)
+                    .cmd_set_line_stipple_enable(
+                        command_buffer.handle(),
+                        self.enable,
+                    );
+            }
+        }
+    }
 }

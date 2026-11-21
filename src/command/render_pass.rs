@@ -362,7 +362,9 @@ impl<'view> ColorAttachment<'view> {
 /// [`AttachmentLoadOp::Clear`].
 #[derive(Clone, Copy)]
 pub struct ClearDepthStencilValue {
+    /// The clear value of the depth aspect.
     pub depth: f32,
+    /// The clear value of the stencil aspect.
     pub stencil: u32,
 }
 
@@ -1002,7 +1004,7 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
     pub fn render_pass<'b>(
         &mut self,
         attributes: RenderPassAttributes<'_, 'b>,
-        alloc: &'b dyn Allocator,
+        allocator: &'b dyn Allocator,
     ) -> Result<ActiveRenderPass<'_, 'b, 'buffer>, Error>
     {
         if let Some(label) = &attributes.label {
@@ -1066,12 +1068,11 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
                 (count, count, 0)
             },
             RenderLayers::Mask(mask) => {
-                if device
-                    .get_feature(vk_11::multiview::NAME)
-                    .is_none()
+                if !device
+                    .is_feature_enabled(vk_11::multiview::NAME)
                 {
                     Err(err!(
-                        "`layers` is `RenderLayers::Mask`, but the `multiview` feature is not enabled",
+                        "`layers` is `RenderLayers::Mask`, but the `vk_11::multiview` feature is not enabled",
                     ))?
                 }
                 if mask == 0 {
@@ -1115,7 +1116,7 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
         }
         let mut color_attachments = FixedVec32::with_capacity_in(
             attributes.color_attachments.len() as u32,
-            alloc
+            allocator
         ).describe_err("allocation with `alloc` failed")?;
         for (i, attachment) in attributes.color_attachments.iter().enumerate() {
             let att_sample_count = attachment.image_view
@@ -1178,7 +1179,7 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
             color_attachments: attributes.color_attachments
                 .iter()
                 .copied()
-                .collect_in(alloc)
+                .collect_in(allocator)
                 .describe_err("allocation with `alloc` failed")?,
             depth_stencil_attachment: attributes.depth_stencil_attachment,
             recorder: self,

@@ -6,6 +6,7 @@ use crate::*;
 
 use sync::Arc;
 
+/// An auto-trait for types that implement [`HasWindowHandle`] and [`HasDisplayHandle`].
 pub trait WindowHandle: HasWindowHandle + HasDisplayHandle {}
 
 impl<T> WindowHandle for T

@@ -181,11 +181,10 @@ impl Sampler {
             }
         }
         if anisotropy_enable &&
-            device.get_feature(vk_10::sampler_anisotropy::NAME)
-                .is_none()
+            !device.is_feature_enabled(vk_10::sampler_anisotropy::NAME)
         {
             Err(err!(
-                "`ANISOTROPY_ENABLE` bit is set but the `sampler_anisotropy` feature is not enabled",
+                "`ANISOTROPY_ENABLE` bit is set but the `vk_10::sampler_anisotropy` feature is not enabled",
             ))?
         }
         if attributes.min_lod > attributes.max_lod {
@@ -211,11 +210,10 @@ impl Sampler {
             ))?
         }
         if attributes.wrapping_mode.contains(&SamplerWrappingMode::MirrorClampToEdge) &&
-            device.get_feature(vk_12::sampler_mirror_clamp_to_edge::NAME)
-                .is_none()
+            !device.is_feature_enabled(vk_12::sampler_mirror_clamp_to_edge::NAME)
         {
             Err(err!(
-                "`SamplerWrappingMode::MirrorClampToEdge` is used but the `sampler_mirror_clamp_to_edge` feature is not enabled",
+                "`SamplerWrappingMode::MirrorClampToEdge` is used but the `vk_12::sampler_mirror_clamp_to_edge` feature is not enabled",
             ))?
         }
         let create_info = vk::SamplerCreateInfo::default()

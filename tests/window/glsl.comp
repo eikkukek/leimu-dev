@@ -1,0 +1,19 @@
+#version 450
+
+#extension GL_EXT_scalar_block_layout : require
+
+#extension GL_EXT_shared_memory_block : require
+
+#extension GL_ARB_gpu_shader_int64 : enable
+#extension GL_EXT_shader_atomic_int64 : require
+
+layout(binding = 0, scalar) buffer Foo {
+    float a[10];
+    vec4 b;
+    uint64_t data[];
+} foo;
+
+void main() {
+    uint bar = foo.data.length();
+    atomicAdd(foo.data[0], 1);
+}

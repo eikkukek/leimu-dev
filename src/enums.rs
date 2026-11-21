@@ -170,7 +170,7 @@ pub enum PipelineStateKind {
     /// The [`kind`][1] of [`ColorBlendEquations`][pipeline_state::ColorBlendEquations].
     ///
     /// [1]: PipelineStateObject::KIND
-    ColorBlendEquation,
+    ColorBlendEquations,
     /// The [`kind`][1] of [`ColorWriteMask`][pipeline_state::ColorWriteMask].
     ///
     /// [1]: PipelineStateObject::KIND
@@ -230,7 +230,7 @@ impl From<PipelineStateKind> for vk::DynamicState {
             states[AlphaToOneEnable as usize]           = vk::DynamicState::ALPHA_TO_ONE_ENABLE_EXT;
             states[LogicOpEnable as usize]              = vk::DynamicState::LOGIC_OP_ENABLE_EXT;
             states[ColorBlendEnable as usize]           = vk::DynamicState::COLOR_BLEND_ENABLE_EXT;
-            states[ColorBlendEquation as usize]         = vk::DynamicState::COLOR_BLEND_EQUATION_EXT;
+            states[ColorBlendEquations as usize]         = vk::DynamicState::COLOR_BLEND_EQUATION_EXT;
             states[ColorWriteMask as usize]             = vk::DynamicState::COLOR_WRITE_MASK_EXT;
             states[LineRasterizationMode as usize]      = vk::DynamicState::LINE_RASTERIZATION_MODE_EXT;
             states[LineStippleEnable as usize]          = vk::DynamicState::LINE_STIPPLE_ENABLE_EXT;
@@ -981,3 +981,42 @@ impl From<AttachmentStoreOp> for vk::AttachmentStoreOp {
     }
 }
 unsafe impl NoUninit for AttachmentStoreOp {}
+/// Specifies how lines are rasterized in a pipeline.
+///
+/// The default value is [`Default`][Self::Default].
+#[repr(i32)]
+#[derive(Default, Clone, Copy, ByteEq, ByteHash, Debug)]
+pub enum LineRasterizationMode {
+    /// Equal to [`Rectangular`][Self::Rectangular] if [`GpuLimits::strict_lines`] is true,
+    /// otherwise lines are drawn as non-`srict_lines` parallelograms.
+    ///
+    /// This is the default value.
+    #[default]
+    Default = 0,
+    /// Specifies lines drawn as if they were rectangles extruded from the line.
+    ///
+    /// # Valid usage
+    /// - The [`vk_14::rectangular_lines`] feature **must** be enabled.
+    Rectangular = 1,
+    /// Specifies lines drawn by determining which pixel diamonds the line intersects and exits.
+    ///
+    /// Described in detail in [here].
+    ///
+    /// # Valid usage
+    /// - The [`vk_14::bresenham_lines`] feature **must** be enabled.
+    ///
+    /// [here]: https://docs.vulkan.org/spec/latest/chapters/primsrast.html#primsrast-lines-bresenham
+    Bresenham = 2,
+    /// Specifies lines drawn as if they were rectangles extruded from the line, with alpha falloff.
+    ///
+    /// # Valid usage
+    /// - The [`vk_14::smooth_lines`] feature **must** be enabled.
+    RectangularSmooth = 3,
+}
+impl From<LineRasterizationMode> for vk::LineRasterizationMode {
+    #[inline]
+    fn from(value: LineRasterizationMode) -> Self {
+        Self::from_raw(value as i32)
+    }
+}
+unsafe impl NoUninit for LineRasterizationMode {}

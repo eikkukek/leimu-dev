@@ -18,7 +18,7 @@ use mem::pack::{pack_alloc, pack_block};
 
 pub use map::*;
 
-/// Parameters used to create a [`Buffer`].
+/// Specifies parameters for [`Buffer`] creation.
 ///
 /// This **can** be used to create a [`Buffer`] with [`Device::create_buffer`].
 ///
@@ -29,8 +29,6 @@ pub type BufferAttributes<'a> = attributes::BufferAttributes<&'a str>;
 impl BufferAttributes<'_> {
 
     /// Calculates how much extra (CPU) memory the created [`Buffer`] will allocate.
-    ///
-    /// Equal to to `72 + label.len()`.
     #[inline]
     pub fn calculate_allocation_size(&self) -> usize {
         size_of::<Inner>() + self.label.map(|l| l.len()).unwrap_or_default()
@@ -99,9 +97,9 @@ impl Buffer
             .usage(usage)
             .sharing_mode(vk::SharingMode::EXCLUSIVE);
         if let Some(usage) = usage64  {
-            if device.get_feature(vk_14::maintenance5::NAME).is_none() {
+            if !device.is_feature_enabled(vk_14::maintenance5::NAME) {
                 Err(err!(
-                    "`BufferUsages` doesn't fit in the 32-bit range, but the `maintenance5` feature is not enabled",
+                    "`BufferUsages` doesn't fit in the 32-bit range, but the `vk_14::maintenance5` feature is not enabled",
                 ))?
             }
             let info = flags2_create_info.insert(vk::BufferUsageFlags2CreateInfo
@@ -271,7 +269,7 @@ impl Buffer
     /// Maps the buffer and passes [`MappedBuffer`] to the given closure, unmapping the memory
     /// after.
     ///
-    /// 
+    /// The closure is executed as soon as the buffer is not in use by the GPU.
     ///
     /// # Valid usage
     /// - The buffer memory backing **must** be mappable (e.g. by specifying `HostVisible*`
@@ -398,6 +396,7 @@ impl Drop for Buffer
     }
 }
 
+/*
 pub struct BufferViewAttributes {
     pub offset: DeviceSize,
-}
+}*/

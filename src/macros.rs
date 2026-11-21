@@ -75,3 +75,34 @@ macro_rules! __id {
         }
     };
 }
+
+#[doc(hidden)]
+#[inline]
+pub const fn module_name(module_path: &'static str) -> &'static str {
+    let bytes = module_path.as_bytes();
+    let mut i = bytes.len() - 1;
+    while i != 0 {
+        let b = bytes[i];
+        if b == b':' {
+            let start = i + 1;
+            return unsafe {
+                str::from_utf8_unchecked(
+                    ::core::slice::from_raw_parts(
+                        bytes.as_ptr().add(start),
+                        bytes.len() - start,
+                    )
+                )
+            }
+        }
+        i -= 1;
+    }
+    module_path
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __module_name {
+    () => {
+        $crate::macros::module_name(module_path!())
+    };
+}

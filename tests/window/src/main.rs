@@ -203,7 +203,10 @@ fn main() -> Result<(), leimu::Error> {
         let suitable_gpus = instance
             .find_suitable_gpus(leimu::DeviceAttributes {
                 required_features: leimu::Features::from_iter([
-                    leimu::vk_khr::swapchain::new(),
+                    leimu::vk_khr::swapchain::require(),
+                    leimu::vk_core::scalar_block_layout::require(),
+                    leimu::vk_core::shader_buffer_int64_atomics::require(),
+                    leimu::vk_core::shader_int64::require(),
                 ]),
             })?;
         let gpu = suitable_gpus.gpus()
@@ -221,6 +224,14 @@ fn main() -> Result<(), leimu::Error> {
             }],
             [],
         )?;
+        let comp_spv = include_bytes!("../comp.spv");
+        device.create_shader_module(
+            leimu::ShaderModuleAttributes {
+                label: Some("compute shader"),
+                spirv: leimu::bytemuck::cast_slice(comp_spv),
+            },
+            None,
+        ).describe_err("failed to validate shader")?;
         let present_queue = device.get_queue("present queue").unwrap();
         let swapchain = device.create_swapchain(
             Some("swapchain"),
@@ -265,7 +276,7 @@ fn main() -> Result<(), leimu::Error> {
                     select_composite_alpha: &mut |_| leimu::CompositeAlphaBit::Opaque
                 },
                 std::time::Duration::from_secs_f32(1.0),
-                leimu::Global,
+                None,
                 |image_view| {
                     let mut recorder = command_buffer.start_recording(
                         leimu::duration_from_secs(1.0),
@@ -278,7 +289,6 @@ fn main() -> Result<(), leimu::Error> {
                                 height: window_size.height,
                                 ..Default::default()
                             },
-                            layers: Default::default(),
                             color_attachments: &[leimu::ColorAttachment::new(
                                 &image_view,
                                 None,
@@ -291,13 +301,14 @@ fn main() -> Result<(), leimu::Error> {
                                     1.0,
                                 ]))
                             )?],
-                            depth_stencil_attachment: leimu::DepthStencilAttachment::none()
+                            depth_stencil_attachment: leimu::DepthStencilAttachment::none(),
+                            ..Default::default()
                         },
                         &tmp_arena,
                     )?;
                     pass.finish();
                     recorder.finish();
-                    device.poll([&mut command_buffer], &tmp_arena)?;
+                    device.poll([&mut command_buffer], Some(&tmp_arena))?;
                     unsafe {
                         tmp_arena.clear();
                     }

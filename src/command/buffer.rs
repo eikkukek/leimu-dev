@@ -50,11 +50,11 @@ impl ResourceStateCache {
         poll_id: u64,
         command_buffer: vk::CommandBuffer,
         additional_cap: u32,
-        alloc: A,
+        allocator: A,
     ) -> Result<FixedVec32<(vk::Semaphore, u64), A>, AllocError> {
         let mut signal_semaphores = FixedVec32::with_capacity_in(
             self.images.len() as u32 + additional_cap,
-            alloc,
+            allocator,
         ).map_err(|_| AllocError)?;
         for (image, ranges) in &self.images {
             let mut scoped = unsafe {
@@ -249,7 +249,7 @@ impl CommandBuffer {
     pub(crate) fn poll<'a>(
         &'a mut self,
         poll_id: u64,
-        alloc: &'a dyn Allocator,
+        allocator: &'a dyn Allocator,
     ) -> Result<CommandBufferPollResult<'a>, Error>
     {
         if !self.is_executable {
@@ -288,8 +288,8 @@ impl CommandBuffer {
                 poll_id,
                 self.primary,
                 1 + self.binary_semaphore.is_some() as u32,
-                alloc,
-            ).describe_err("allocation with `alloc` failed")?;
+                allocator,
+            ).describe_err("allocation with `allocator` failed")?;
             device.functions()
                 .cmd_execute_commands(
                     self.primary,
@@ -297,7 +297,7 @@ impl CommandBuffer {
                 );
             let mut wait_semaphores = FixedVec32::with_capacity_in(
                 signal_semaphores.len(),
-                alloc,
+                allocator,
             ).describe_err("allocation with `alloc` failed")?;
             wait_semaphores.extend(signal_semaphores
                 .iter()

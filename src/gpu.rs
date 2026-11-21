@@ -181,6 +181,9 @@ impl GpuInfo {
                     },
                     max_buffer_size: maintenance4_properties.max_buffer_size,
                     max_multiview_count: vk_11_properties.max_multiview_view_count,
+                    supported_subgroup_operations: SubgroupFeatures::from_bits_truncate(vk_11_properties
+                        .subgroup_supported_operations.as_raw()
+                    ),
                 },
                 queue_families: queue_family_properties
                     .into_iter()
