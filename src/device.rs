@@ -1007,24 +1007,24 @@ impl Device {
         ShaderModule::new(self.clone(), attributes, allocator.unwrap_or_default())
     }
 
-    /// Creates a [`ShaderSet`].
+    /// Creates a [`PipelineLayout`].
     ///
     /// # Parameters
     /// - `attributes`: the parameters used to create this set.
     /// - `allocator`: this is **not** a GPU memory allocator, but a regular allocator implementing
-    ///   [`Allocator`]. It is used for allocating needed data for of the [`ShaderSet`] structure.
+    ///   [`Allocator`]. It is used for allocating needed data for of the [`PipelineLayout`] structure.
     ///   If the allocator fails to allocate, this function will panic. The total
-    ///   allocation size can be queried with [`ShaderSetAttributes::calculate_allocation_size`].
+    ///   allocation size can be queried with [`PipelineLayoutAttributes::calculate_allocation_size`].
     ///
     /// # Valid usage
-    /// Valid usage is described in [`ShaderSetAttributes`].
+    /// Valid usage is described in [`PipelineLayoutAttributes`].
     #[inline]
-    pub fn create_shader_set(
+    pub fn create_pipeline_layout(
         &self,
-        attributes: ShaderSetAttributes<'_>,
+        attributes: PipelineLayoutAttributes<'_>,
         allocator: Option<AnyAllocator>,
-    ) -> Result<ShaderSet, ShaderSetError> {
-        ShaderSet::new(self.clone(), attributes, allocator.unwrap_or_default())
+    ) -> Result<PipelineLayout, PipelineLayoutError> {
+        PipelineLayout::new(self.clone(), attributes, allocator.unwrap_or_default(), &std::alloc::Global)
     }
 
     /// Advances the runtime once.

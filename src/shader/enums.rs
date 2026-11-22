@@ -51,12 +51,27 @@ pub enum DescriptorType {
     InlineUniformBlock,
 }
 unsafe impl NoUninit for DescriptorType {}
-
 impl DescriptorType {
     /// The number of variants in this enum.
     pub const VARIANT_COUNT: usize = Self::InlineUniformBlock as usize + 1; 
 }
-
+impl From<DescriptorType> for vk::DescriptorType {
+    #[inline]
+    fn from(value: DescriptorType) -> Self {
+        static TYPES: [vk::DescriptorType; DescriptorType::VARIANT_COUNT] = [
+            vk::DescriptorType::SAMPLER,
+            vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            vk::DescriptorType::SAMPLED_IMAGE,
+            vk::DescriptorType::STORAGE_IMAGE,
+            vk::DescriptorType::UNIFORM_TEXEL_BUFFER,
+            vk::DescriptorType::STORAGE_TEXEL_BUFFER,
+            vk::DescriptorType::UNIFORM_BUFFER,
+            vk::DescriptorType::STORAGE_BUFFER,
+            vk::DescriptorType::INLINE_UNIFORM_BLOCK,
+        ];
+        TYPES[value as usize]
+    }
+}
 /// An enumeration of shader stages.
 #[repr(u32)]
 #[derive(Clone, Copy, Zeroable, ByteEq, ByteHash, Debug)]

@@ -169,7 +169,6 @@ dependencies = [
  "log",
  "parking_lot",
  "portable-atomic",
- "portable-atomic-util",
  "raw-window-handle",
  "smallvec",
  "spirv-tools",
@@ -336,15 +335,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
 
 [[package]]
-name = "portable-atomic-util"
-version = "0.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
-dependencies = [
- "portable-atomic",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -501,9 +491,9 @@ dependencies = [
 
 [[package]]
 name = "tuhka"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89b70dde213297e669833b80f104b8402d2cc6dc1c04af2324400e213591cb20"
+checksum = "c269b2e9d510b4cb93dbf300d8fe48a87f1b749b01532ba0aeb97fe1c7f771ef"
 dependencies = [
  "bytemuck",
  "libloading",

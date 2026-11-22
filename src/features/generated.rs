@@ -7820,8 +7820,22 @@ pub mod vk_14 {
     #[doc = "Allows the use of push descriptors."]
     pub mod push_descriptor {
         use super::*;
+        #[doc = r" Properties of this feature."]
+        pub struct Properties {
+            #[doc = "The maximum number of descriptors that **can** be used in [`PipelineLayout`] set"]
+            #[doc = "that was created as push descriptor set"]
+            pub max_push_descriptors: u32,
+        }
+        impl From<vk::PhysicalDevicePushDescriptorProperties<'static>> for Properties {
+            #[inline]
+            fn from(value: vk::PhysicalDevicePushDescriptorProperties<'static>) -> Self {
+                Self {
+                    max_push_descriptors: value.max_push_descriptors,
+                }
+            }
+        }
         #[doc = r" The name of this feature."]
-        pub static NAME: FeatureName<()> = FeatureName::new(stringify!(push_descriptor));
+        pub static NAME: FeatureName<Properties> = FeatureName::new(stringify!(push_descriptor));
         #[doc = r" Enables this feature and requires for it to be supported."]
         pub fn require() -> DeviceFeature {
             feature(
@@ -7845,7 +7859,9 @@ pub mod vk_14 {
                             features.push_descriptor(true)
                         });
                     }
-                    Some(())
+                    let mut properties = vk::PhysicalDevicePushDescriptorProperties::default();
+                    ctx.get_physical_device_properties(&mut properties);
+                    Some(Properties::from(properties))
                 },
                 NAME,
             )
@@ -7885,7 +7901,9 @@ pub mod vk_14 {
                             features.push_descriptor(true)
                         });
                     }
-                    Some(())
+                    let mut properties = vk::PhysicalDevicePushDescriptorProperties::default();
+                    ctx.get_physical_device_properties(&mut properties);
+                    Some(Properties::from(properties))
                 },
                 NAME,
             )
@@ -8425,8 +8443,10 @@ pub mod vk_khr {
         #[doc = r" Properties of this feature."]
         pub struct Properties {
             #[doc = "The number of bytes that the range of a storage buffer descriptor is rounded up to"]
-            pub robust_storage_buffer_access_size_alignment: DeviceSize,
             #[doc = "when used for bounds-checking when this feature is enabled."]
+            pub robust_storage_buffer_access_size_alignment: DeviceSize,
+            #[doc = "The number of bytes that the range of a uniform buffer descriptor is rounded up"]
+            #[doc = "to when used for bounds-checking when the this feature is enabled."]
             pub robust_uniform_buffer_access_size_alignment: DeviceSize,
         }
         impl From<vk::PhysicalDeviceRobustness2PropertiesKHR<'static>> for Properties {

@@ -282,7 +282,8 @@ pub(super) mod prelude {
     }
 
     #[derive(Debug)]
-    pub enum ShaderSetError {
+    pub enum PipelineLayoutError {
+        Internal(Error),
         MismatchedShaderStage {
             tag: Option<String>,
             expected: ShaderStage,
@@ -343,6 +344,105 @@ pub(super) mod prelude {
             max_size: u32,
             stage: ShaderStage,
         },
+        PushDescriptorNotEnabled,
+        TooManyPushDescriptors {
+            count: u32,
+            max_count: u32,
+        },
+        InvalidPushDescriptorType {
+            descriptor_type: DescriptorType,
+        },
+    }
+
+    impl Display for PipelineLayoutError {
+
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Self::Internal(_) => write!(f, "internal error occurred"),
+                Self::MismatchedShaderStage { tag, expected, found } => {
+                    if let Some(tag) = tag {
+                        write!(f, "expected `Shader` `{tag}` to have the {expected:?} shader stage, but it has {found:?}")
+                    } else {
+                        write!(f, "expected `Shader` to have the {expected:?} shader stage, but it has {found:?}")
+                    }
+                },
+                Self::DuplicateSetBinding { set, binding } => {
+                    write!(f, "duplicate `set/binding` pair `({set}, {binding})`")
+                },
+                Self::InlineUniformBlockNotEnabled => {
+                    write!(f, "inline uniform blocks used, but the `vk_14::inline_uniform_block` feature is not enbaled")
+                },
+                Self::InvalidInlineUniformBlock { name, found_type } => {
+                    write!(f, "cannot convert descriptor `{found_type:?}` to `InlineUniformBlock` for descriptor binding `{name}`")
+                },
+                Self::UnresolvedStructSize { resource_name } => {
+                    write!(f, "couldn't resolve struct size for resource `{resource_name}`")
+                },
+                Self::StructSizeTooBig { resource_name, resolved_size } => {
+                    write!(f, "the size `{resolved_size}` of the block of resource `{resource_name}` is more than `u32::MAX`")
+                },
+                Self::InlineUniformBlockTooBig { resource_name, resolved_size, max_size } => {
+                    write!(f,
+                        "the size `{resolved_size}` of `InlineUniformBlock` binding `{resource_name}` is grater than {}",
+                        format_args!("the maximum {max_size}"),
+                    )
+                },
+                Self::TooManyDescriptors { count, max_count, descriptor_types } => {
+                    write!(f, "too many descriptors of type `{descriptor_types:?}` in pipeline layout: {}",
+                        format_args!("maximum is `{max_count}`, but count is `{count}`")
+                    )
+                },
+                Self::TooManyDescriptorsInStage { count, max_count, stage, descriptor_types } => {
+                    write!(f, "too many descriptors of type `{descriptor_types:?}` in shader stage `{stage:?}: {}",
+                        format_args!("maximum is `{max_count}`, but count is `{count}`")
+                    )
+                },
+                Self::MaxInlineUniformTotalSizeExceeded { max_total_size, total_size } => {
+                    write!(f,
+                        "maximum total size `{max_total_size}` of inline uniform blocks accross all stages exceeded: {}",
+                        format_args!("caluclated size is `{total_size}`"),
+                    )
+                },
+                Self::TooManyResourcesInStage { count, max_count, stage } => {
+                    write!(f,
+                        "too many descriptors in shader stage `{stage:?}`: the maximum is `{max_count}`, but the count is `{count}`",
+                    )
+                },
+                Self::InvalidPushConstantOffset { offset, stage } => {
+                    write!(f, "the offset of the push constant in stage `{stage:?}` (`{offset}`) is not a multiple of 4")
+                },
+                &Self::InvalidPushConstantSize { size, stage } => {
+                    if size == 0 {
+                        write!(f, "the size of the push constant in stage `{stage:?}` is zero")
+                    } else {
+                        write!(f, "the size of the push constant in stage `{stage:?}` (`{size}`) is not a multiple of `4`")
+                    }
+                },
+                &Self::PushConstantOutOfRange { offset, size, max_size, stage } => {
+                    write!(f,
+                        "the push constant in stage `{stage:?}` is out of range of the maximum push constant size `{max_size}` {}",
+                        format_args!("with offset `{offset}` and size `{size}`")
+                    )
+                },
+                Self::PushDescriptorNotEnabled => {
+                    write!(f, "push descriptor used, but the `vk_14::push_descriptor` feature is not enabled")
+                },
+                Self::TooManyPushDescriptors { count, max_count } => {
+                    write!(f, "too many push descriptor declared: the maximum is `{max_count}`, but the count is `{count}`")
+                },
+                Self::InvalidPushDescriptorType { descriptor_type } => {
+                    write!(f, "push descriptor binding has an invalid descriptor type `{descriptor_type:?}`")
+                },
+            }
+        }
+    }
+
+    impl error::Error for PipelineLayoutError {
+
+        #[inline]
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            __variant_some!(Self::Internal = self)
+        }
     }
 }
 

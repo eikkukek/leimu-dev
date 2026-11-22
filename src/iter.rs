@@ -31,3 +31,45 @@ macro_rules! __iter_wrapper {
 
 /// [`Copied`] [`slice::Iter`].
 pub type IterSliceCopied<'a, T> = Copied<slice::Iter<'a, T>>;
+
+/// Returned by [`enumerate_u32`][IteratorExt::enumerate_u32].
+pub struct EnumerateU32<I: Iterator> {
+    iter: Enumerate<I>,
+}
+
+impl<I> Iterator for EnumerateU32<I>
+    where I: Iterator
+{
+
+    type Item = (u32, <I as Iterator>::Item);
+    
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+            .map(|(i, t)| (i as u32, t))
+    }
+}
+
+/// An extension trait for [`Iterator`].
+pub trait IteratorExt: Iterator + Sized {
+
+    /// Same as [`enumerate`], but yields the count as [`u32`] insted of [`usize`].
+    ///
+    /// [`enumerate`]: Iterator::enumerate
+    #[inline]
+    fn enumerate_u32(self) -> EnumerateU32<Self> {
+        EnumerateU32 {
+            iter: self.enumerate()
+        }
+    }
+
+    /// Same as [`count`], but returns the count as [`u32`].
+    ///
+    /// [`count`]: Iterator::count
+    #[inline]
+    fn count_u32(self) -> u32 {
+        self.count() as u32
+    }
+}
+
+impl<I: Iterator> IteratorExt for I {}

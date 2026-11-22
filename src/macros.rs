@@ -110,9 +110,9 @@ macro_rules! __module_name {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __variant_some {
-    ($e:ident::$variant:ident = $value:expr) => {
+    ($e_first:ident $(::$e:ident)* = $value:expr) => {
         {
-            if let $e::$variant(x) = $value {
+            if let $e_first$(::$e)*(x) = $value {
                 Some(x)
             } else {
                 None

@@ -844,6 +844,17 @@ doc = [
 ]
 title = "push_descriptor"
 extension.path = "tuhka::khr::push_descriptor::NAME"
+extension.vk_properties = "vk::PhysicalDevicePushDescriptorProperties"
+extension.property_fields = [
+  "max_push_descriptors: u32",
+]
+extension.property_docs = [
+  "The maximum number of descriptors that **can** be used in [`PipelineLayout`] set\n",
+  "that was created as push descriptor set",
+]
+extension.property_mappings = [
+  "max_push_descriptors",
+]
 [[vk_14.features]]
 doc = [
   "Adds a collection of minor features.",
@@ -911,10 +922,10 @@ extension.property_fields = [
 ]
 extension.property_docs = [
   # robust_storage_buffer_access_size_alignment
-  "The number of bytes that the range of a storage buffer descriptor is rounded up to",
+  "The number of bytes that the range of a storage buffer descriptor is rounded up to\n",
   "when used for bounds-checking when this feature is enabled.",
   # robust_uniform_buffer_access_size_alignment
-  "The number of bytes that the range of a uniform buffer descriptor is rounded up",
+  "The number of bytes that the range of a uniform buffer descriptor is rounded up\n",
   "to when used for bounds-checking when the this feature is enabled.",
 ]
 extension.property_mappings = [

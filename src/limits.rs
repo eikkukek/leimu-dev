@@ -22,7 +22,7 @@ impl GpuLimits {
         self.max_buffer_size
     }
 
-    /// Returns the maximum total size of inline uniform blocks in a shader set.
+    /// Returns the maximum total size of inline uniform blocks in a [`PipelineLayout`].
     ///
     /// If the Vulkan version of the device is less than 1.3, this will return `None`.
     #[inline]
@@ -157,7 +157,7 @@ impl GpuLimits {
     }
    
     /// The maximum number of [samplers] and [combined image samplers] that **can** be accessible to a
-    /// single shader stage in a set of shaders.
+    /// single shader stage in a [`PipelineLayout`].
     ///
     /// [samplers]: DescriptorType::Sampler
     /// [combined image samplers]: DescriptorType::CombinedImageSampler
@@ -167,91 +167,91 @@ impl GpuLimits {
     }
     
     /// The maximum number of uniform buffers that **can** be accessible to a single shader stage in a
-    /// set of shaders.
+    /// [`PipelineLayout`].
     #[inline]
     pub fn max_per_stage_descriptor_uniform_buffers(&self) -> u32 {
         self.vk_10.max_per_stage_descriptor_uniform_buffers
     }
 
     /// The maximum number of storage buffers that **can** be accessible to a single shader stage in a
-    /// set of shaders.
+    /// [`PipelineLayout`].
     #[inline]
     pub fn max_per_stage_descriptor_storage_buffers(&self) -> u32 {
         self.vk_10.max_per_stage_descriptor_storage_buffers
     }
 
     /// The maximum number of sampled images that **can** be accessible to a single shader stage in a
-    /// set of shaders.
+    /// [`PipelineLayout`].
     #[inline]
     pub fn max_per_stage_descriptor_sampled_images(&self) -> u32 {
         self.vk_10.max_per_stage_descriptor_sampled_images
     }
 
     /// The maximum number of storage images that **can** be accessible to a single shader stage in a
-    /// set of shaders.
+    /// [`PipelineLayout`].
     #[inline]
     pub fn max_per_stage_descriptor_storage_images(&self) -> u32 {
         self.vk_10.max_per_stage_descriptor_storage_images
     }
 
     /// The maximum number of input attachments that **can** be accessible to a single shader stage in 
-    /// a set of shaders.
+    /// a [`PipelineLayout`].
     #[inline]
     pub fn max_per_stage_descriptor_input_attachments(&self) -> u32 {
         self.vk_10.max_per_stage_descriptor_input_attachments
     }
     
     /// The maximum number of resources that **can** be accessible to a single shader stage in a
-    /// set of shaders.
+    /// [`PipelineLayout`].
     #[inline]
     pub fn max_per_stage_resources(&self) -> u32 {
         self.vk_10.max_per_stage_resources
     }
    
-    /// The maximum number of samplers that **can** be included in a set of shaders.
+    /// The maximum number of samplers that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_samplers(&self) -> u32 {
         self.vk_10.max_descriptor_set_samplers
     }
 
-    /// The maximum number of uniform buffers that **can** be included in a set of shaders.
+    /// The maximum number of uniform buffers that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_uniform_buffers(&self) -> u32 {
         self.vk_10.max_descriptor_set_uniform_buffers
     }
 
-    /// The maximum number of dynamic uniform buffers that **can** be included in a set of shaders.
+    /// The maximum number of dynamic uniform buffers that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_uniform_buffers_dynamic(&self) -> u32 {
         self.vk_10.max_descriptor_set_uniform_buffers_dynamic
     }
 
-    /// The maximum number of storage buffers that **can** be included in a set of shaders.
+    /// The maximum number of storage buffers that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_storage_buffers(&self) -> u32 {
         self.vk_10.max_descriptor_set_storage_buffers
     }
 
     /// The maximum number of dynamic storage buffers that **can** be included in a
-    /// set of shaders.
+    /// [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_storage_buffers_dynamic(&self) -> u32 {
         self.vk_10.max_descriptor_set_storage_buffers_dynamic
     }
 
-    /// The maximum number of sampled images that **can** be included in a set of shaders.
+    /// The maximum number of sampled images that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_sampled_images(&self) -> u32 {
         self.vk_10.max_descriptor_set_sampled_images
     }
 
-    /// The maximum number of storage images that **can** be included in a set of shaders.
+    /// The maximum number of storage images that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_storage_images(&self) -> u32 {
         self.vk_10.max_descriptor_set_storage_images
     }
 
-    /// The maximum number of input attachments that **can** be included in a set of shaders.
+    /// The maximum number of input attachments that **can** be included in a [`PipelineLayout`].
     #[inline]
     pub fn max_descriptor_set_input_attachments(&self) -> u32 {
         self.vk_10.max_descriptor_set_input_attachments

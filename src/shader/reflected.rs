@@ -83,6 +83,7 @@ impl From<PushConstantRange> for vk::PushConstantRange {
         }
     }
 }
+static_assertions::const_assert!(!::core::mem::needs_drop::<PushConstantRange>());
 
 struct Inner {
     module: ShaderModule,
@@ -196,9 +197,9 @@ impl Shader {
             Err(ShaderReflectError::TooManyPushConstants)?
         }
         let mut name_bytes = name.as_bytes().to_owned();
-        name_bytes.push(b'0');
+        name_bytes.push(0);
         if let Some(tag) = tag {
-            log::info!(" `Shader` `{tag}`")
+            log::info!("created `Shader` `{tag}`")
         }
         Ok(Self {
             inner: Inner {

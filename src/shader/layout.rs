@@ -1,6 +1,5 @@
 use core::{
     str,
-    slice,
     ptr::NonNull,
     borrow::Borrow,
     mem::{DropGuard, forget},
@@ -15,13 +14,14 @@ use sync::{
     atomic::{self, AtomicU64},
     Mutex,
 };
+use spirv::reflect;
 use mem::{
     pack::{pack_alloc, pack_block},
     alloc_vec::FixedVec32,
 };
 
-/// Specifies the type of a [`ShaderSet`].
-pub enum ShaderSetType<T>
+/// Specifies the type of a [`PipelineLayout`].
+pub enum PipelineLayoutType<T>
     where T: Borrow<Shader>
 {
     /// Specifies a simple compute shader.
@@ -32,7 +32,7 @@ pub enum ShaderSetType<T>
         /// The stage of the shader **must** be [`ShaderStage::Compute`].
         compute: T,
     },
-    /// Specifies a vertex shading set.
+    /// Specifies a vertex shading layout.
     Vertex {
         /// The vertex shader.
         ///
@@ -46,7 +46,7 @@ pub enum ShaderSetType<T>
         /// - the stage of the shader **must** be [`ShaderStage::Fragment`].
         fragment: Option<T>,
     },
-    /// Specifies a mesh shading set.
+    /// Specifies a mesh shading layout.
     ///
     /// # Valid usage
     /// The [`vk_ext::mesh_shader`] feature **must** be enabled.
@@ -71,9 +71,9 @@ pub enum ShaderSetType<T>
     }
 }
 
-fn check_shader_stage(shader: &Shader, expected: ShaderStage) -> Result<(), ShaderSetError> {
+fn check_shader_stage(shader: &Shader, expected: ShaderStage) -> Result<(), PipelineLayoutError> {
     if shader.shader_stage() != expected {
-        Err(ShaderSetError::MismatchedShaderStage {
+        Err(PipelineLayoutError::MismatchedShaderStage {
             tag: shader.tag().map(Into::into),
             expected,
             found: shader.shader_stage(),
@@ -82,27 +82,27 @@ fn check_shader_stage(shader: &Shader, expected: ShaderStage) -> Result<(), Shad
     Ok(())
 }
 
-impl<T> ShaderSetType<T>
+impl<T> PipelineLayoutType<T>
     where T: Borrow<Shader>
 {
 
     /// Maps `T` to `U`.
     #[inline]
-    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> ShaderSetType<U>
+    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> PipelineLayoutType<U>
         where U: Borrow<Shader>,
     {
         match self {
             Self::Compute { compute } => {
-                ShaderSetType::Compute { compute: f(compute) }
+                PipelineLayoutType::Compute { compute: f(compute) }
             },
             Self::Vertex { vertex, fragment } => {
-                ShaderSetType::Vertex {
+                PipelineLayoutType::Vertex {
                     vertex: f(vertex),
                     fragment: fragment.map(&mut f),
                 }
             },
             Self::Mesh { task, mesh, fragment } => {
-                ShaderSetType::Mesh {
+                PipelineLayoutType::Mesh {
                     task: task.map(&mut f),
                     mesh: f(mesh),
                     fragment: fragment.map(&mut f),
@@ -115,7 +115,7 @@ impl<T> ShaderSetType<T>
     ///
     /// Returns an error if there's a shader stage mismatch.
     #[inline]
-    pub fn shaders(&self) -> Result<impl Iterator<Item = &'_ Shader>, ShaderSetError> {
+    pub fn shaders(&self) -> Result<impl Iterator<Item = &'_ Shader>, PipelineLayoutError> {
         let mut shaders = ArrayVec::<&Shader, 3>::new();
         match self {
             Self::Compute { compute } => unsafe {
@@ -187,9 +187,9 @@ impl<T> ShaderSetType<T>
     }
 }
 
-/// Additional attributes for a [`ShaderSet`] binding.
+/// Additional attributes for a [`PipelineLayout`] binding.
 #[derive(Clone, Copy)]
-pub struct ShaderSetBindingAttributes<'a> {
+pub struct PipelineLayoutBindingAttributes<'a> {
     /// The set of the binding.
     pub set: u32,
     /// The binding within [`set`][Self::set].
@@ -213,13 +213,32 @@ pub struct ShaderSetBindingAttributes<'a> {
     pub fill_struct_hole: Option<NonZeroU32>,
 }
 
-/// Specifies parameters for creating an [`ShaderSetAttributes`].
+/// Additional attributes for a [`PipelineLayout`] (descriptor) set.
+#[derive(Clone, Copy)]
+pub struct PipelineLayoutSetAttributes {
+    /// The set these attributes target.
+    pub set: u32,
+    /// Whether the set is a push descriptor set and is directly pushed to the [`CommandBuffer`]
+    /// instead of allocated from a pool.
+    ///
+    /// # Valid usage
+    /// If this is `true`:
+    /// - the [`vk_14::push_descriptor`] feature **must** be enabled, and
+    /// - the total number descriptors **must** be less than [`max_push_descriptors`], and
+    /// - the set **must** not contain a descriptor with the [`InlineUniformBlock`] descriptor type.
+    ///
+    /// [`max_push_descriptors`]: vk_14::push_descriptor::Properties::max_push_descriptors
+    /// [`InlineUniformBlock`]: DescriptorType::InlineUniformBlock
+    pub push_descriptor: bool,
+}
+
+/// Specifies parameters for creating an [`PipelineLayout`].
 ///
-/// This **can** be used to create a [`ShaderSet`] with [`Device::create_shader_set`].
-pub struct ShaderSetAttributes<'a> {
-    /// An optional debug tag of the shader set.
+/// This **can** be used to create a [`PipelineLayout`] with [`Device::create_shader_set`].
+pub struct PipelineLayoutAttributes<'a> {
+    /// An optional debug tag of the pipeline layout.
     pub tag: Option<&'a str>,
-    /// The type of this set.
+    /// The type of this layout.
     ///
     /// # Valid usage
     /// - Each [`set`]/[`binding`] pair in the resources of the shaders contained in this type
@@ -227,26 +246,36 @@ pub struct ShaderSetAttributes<'a> {
     ///
     /// [`set`]: Uniform::set
     /// [`binding`]: Uniform::binding
-    pub ty: ShaderSetType<&'a Shader>,
+    pub ty: PipelineLayoutType<&'a Shader>,
+    pub set_attributes: &'a [PipelineLayoutSetAttributes],
     /// Specifies additional attributes for specific `set`/`binding` pairs.
-    pub binding_attributes: &'a [ShaderSetBindingAttributes<'a>],
+    pub binding_attributes: &'a [PipelineLayoutBindingAttributes<'a>],
 }
 
-impl ShaderSetAttributes<'_> {
+impl PipelineLayoutAttributes<'_> {
 
-    /// Calculates how much extra (CPU) memory the created [`ShaderSet`] will allocate.
+    /// Calculates how much extra (CPU) memory the created [`PipelineLayout`] will allocate.
     pub fn calculate_allocation_size(&self) -> usize {
         let mut resource_count = 0;
         let mut pc_count = 0;
+        let mut set_count = 0;
         for s in self.ty
             .shaders_unchecked()
         {
             resource_count += s.resources().len();
+            s.resources()
+                .iter()
+                .map(|s| s.set as usize)
+                .max()
+                .inspect(|&max| {
+                    set_count = (set_count).max(max + 1);
+                });
             pc_count += s.push_constant_range().is_some() as usize;
         }
         size_of::<Inner>()
             + resource_count * size_of::<ShaderResource>()
             + pc_count * size_of::<PushConstantRange>()
+            + set_count * size_of::<NonNull<vk::DescriptorSetLayout>>()
             + self.tag.map(size_of_val).unwrap_or_default()
     }
 }
@@ -254,7 +283,10 @@ impl ShaderSetAttributes<'_> {
 struct Inner {
     device: Device,
     ref_count: AtomicU64,
-    pipeline_layout: Mutex<Option<vk::PipelineLayout>>,
+    handle: Mutex<vk::PipelineLayout>,
+    resources: NonNull<[ShaderResource]>,
+    push_constants: NonNull<[PushConstantRange]>,
+    set_layouts: NonNull<[vk::DescriptorSetLayout]>,
     pack_layout: alloc::Layout,
 }
 
@@ -263,18 +295,16 @@ struct Inner {
 /// This is used for creating pipelines and allocating shader resources.
 ///
 /// [shaders]: Shader
-pub struct ShaderSet {
+pub struct PipelineLayout {
     inner: NonNull<Inner>,
     tag: Option<NonNull<[u8]>>,
-    resources: NonNull<[ShaderResource]>,
-    push_constants: NonNull<[PushConstantRange]>,
     allocator: AnyAllocator,
 }
 
-unsafe impl Send for ShaderSet {}
-unsafe impl Sync for ShaderSet {}
+unsafe impl Send for PipelineLayout {}
+unsafe impl Sync for PipelineLayout {}
 
-impl Clone for ShaderSet {
+impl Clone for PipelineLayout {
 
     #[inline]
     fn clone(&self) -> Self {
@@ -287,14 +317,12 @@ impl Clone for ShaderSet {
         Self {
             inner: self.inner,
             tag: self.tag,
-            resources: self.resources,
-            push_constants: self.push_constants,
             allocator: self.allocator.clone(),
         }
     }
 }
 
-impl Drop for ShaderSet {
+impl Drop for PipelineLayout {
 
     #[inline]
     fn drop(&mut self) {
@@ -303,27 +331,33 @@ impl Drop for ShaderSet {
                 .ref_count
                 .fetch_sub(1, atomic::Ordering::AcqRel);
             if ref_count == 1 {
-                let layout = self.inner
-                    .as_ref()
-                    .pipeline_layout
-                    .lock();
-                if let Some(layout) = *layout
+                self.inner()
+                    .device
+                    .functions()
+                    .destroy_pipeline_layout(
+                        *self.inner()
+                            .handle
+                            .lock(),
+                        None
+                    );
+                self.inner().resources.drop_in_place();
+                for layout in self
+                    .inner()
+                    .set_layouts.iter()
+                    .copied()
                 {
-                    self.inner
-                        .as_ref()
+                    self.inner()
                         .device
                         .functions()
-                        .destroy_pipeline_layout(
+                        .destroy_descriptor_set_layout(
                             layout,
-                            None
+                            None,
                         );
                 }
-                drop(layout);
-                self.resources.drop_in_place();
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
                 if let Some(tag) = self.tag() {
-                    log::info!("destroyed `Image` `{tag}`")
+                    log::info!("destroyed `PipelineLayout` `{tag}`")
                 }
                 self.allocator
                     .deallocate(self.inner.cast(), pack_layout);
@@ -332,26 +366,35 @@ impl Drop for ShaderSet {
     }
 }
 
-impl ShaderSet {
+impl PipelineLayout {
 
     pub(crate) fn new(
         device: Device,
-        attributes: ShaderSetAttributes<'_>,
+        attributes: PipelineLayoutAttributes<'_>,
         allocator: AnyAllocator,
-    ) -> Result<Self, ShaderSetError> {
+        tmp_allocator: &(impl Allocator + ?Sized),
+    ) -> Result<Self, PipelineLayoutError> {
         if let Some(tag) = attributes.tag {
-            log::info!("validation `ShaderSet` `{tag}`");
+            log::info!("validation `PipelineLayout` `{tag}`");
         }
         let shaders: ArrayVec<&Shader, 3> = attributes.ty
             .shaders()?
             .collect();
         let mut resource_count = 0;
         let mut push_constant_count = 0;
+        let mut set_count = 0;
         for shader in &shaders {
             resource_count += shader.resources().len();
+            shader
+                .resources()
+                .iter()
+                .map(|r| r.set)
+                .max()
+                .inspect(|&max| set_count = set_count.max(max + 1));
             push_constant_count += shader.push_constant_range().is_some() as usize;
         }
         let mut inner = NonNull::<Inner>::dangling();
+        let mut set_layouts = NonNull::<vk::DescriptorSetLayout>::dangling();
         let mut resources = NonNull::<ShaderResource>::dangling();
         let mut push_constants = NonNull::<PushConstantRange>::dangling();
         let mut tag_slice_ptr = None;
@@ -362,6 +405,7 @@ impl ShaderSet {
                 &allocator,
                 [
                     pack_block(&mut inner, 1).unwrap(),
+                    pack_block(&mut set_layouts, push_constant_count).unwrap(),
                     pack_block(&mut resources, resource_count).unwrap(),
                     pack_block(&mut push_constants, push_constant_count).unwrap(),
                     pack_block(&mut tag_ptr, tag.len()).unwrap(),
@@ -384,6 +428,7 @@ impl ShaderSet {
                 &allocator,
                 [
                     pack_block(&mut inner, 1).unwrap(),
+                    pack_block(&mut set_layouts, push_constant_count).unwrap(),
                     pack_block(&mut resources, resource_count).unwrap(),
                     pack_block(&mut push_constants, push_constant_count).unwrap(),
                 ]
@@ -400,15 +445,17 @@ impl ShaderSet {
             unsafe {(
                 FixedVec32::from_parts(resources, 0, resource_count as u32),
                 FixedVec32::from_parts(push_constants, 0, push_constant_count as u32),
+                FixedVec32::from_parts(set_layouts, 0, set_count),
                 true,
             )},
-            |(mut a, mut b, clear)| {
+            |(mut a, b, c, clear)| {
+                // only push_constants
                 if clear {
                     a.clear();
-                    b.clear();
                 }
                 forget(a);
                 forget(b);
+                forget(c);
             }
         );
         static SHADER_STAGES: [ShaderStage; ShaderStage::VARIANT_COUNT] = [
@@ -427,7 +474,7 @@ impl ShaderSet {
         for shader in &shaders {
             if let Some(&pc) = shader.push_constant_range() {
                 if !pc.offset.is_multiple_of(4) {
-                    Err(ShaderSetError::InvalidPushConstantOffset {
+                    Err(PipelineLayoutError::InvalidPushConstantOffset {
                         offset: pc.offset,
                         stage: shader.shader_stage(),
                     })?
@@ -435,13 +482,13 @@ impl ShaderSet {
                 if pc.size == 0 ||
                     !pc.size.is_multiple_of(4)
                 {
-                    Err(ShaderSetError::InvalidPushConstantSize {
+                    Err(PipelineLayoutError::InvalidPushConstantSize {
                         size: pc.size,
                         stage: shader.shader_stage(),
                     })?
                 }
                 if pc.offset + pc.size > max_push_constant_size {
-                    Err(ShaderSetError::PushConstantOutOfRange {
+                    Err(PipelineLayoutError::PushConstantOutOfRange {
                         offset: pc.offset,
                         size: pc.size,
                         max_size: pc.size,
@@ -456,7 +503,7 @@ impl ShaderSet {
                     .find(|r| r.set == resource.set && r.binding == resource.binding)
                     .map(|u| (u.set, u.binding))
                 {
-                    Err(ShaderSetError::DuplicateSetBinding { set, binding })?
+                    Err(PipelineLayoutError::DuplicateSetBinding { set, binding })?
                 }
                 let mut resource = resource.clone();
                 if let Some(attrs) = attributes
@@ -471,43 +518,51 @@ impl ShaderSet {
                         ShaderResourceCount::Runtime { declared } => {
                             if let Some(resolve) = attrs.fill_runtime_hole {
                                 resource.count = ShaderResourceCount::Static(
-                                    declared * resolve.get()
+                                    declared * resolve.get(),
+                                );
+                            } else {
+                                resource.count = ShaderResourceCount::Static(
+                                    declared,
                                 );
                             }
                         },
                     }
+                    let struct_size = resource.struct_size
+                        .as_ref()
+                        .iter().try_fold(None, |_, size_hint| {
+                            Ok(Some(match size_hint {
+                                reflect::TypeSizeHint::Static(size) => *size,
+                                reflect::TypeSizeHint::Struct(hole) => hole.resolve(
+                                    attrs.fill_struct_hole.ok_or_else(|| PipelineLayoutError::UnresolvedStructSize {
+                                        resource_name: resource.name.clone()
+                                    })?.get() as usize
+                                ),
+                                _ => unreachable!(),
+                            }))
+                        })?;
+                    resource.struct_size = struct_size.map(reflect::TypeSizeHint::Static);
                     if attrs.inline_uniform_block
                     {
                         if resource.ty != DescriptorType::UniformBuffer {
-                            Err(ShaderSetError::InvalidInlineUniformBlock {
+                            Err(PipelineLayoutError::InvalidInlineUniformBlock {
                                 name: resource.name.clone(),
                                 found_type: resource.ty,
                             })?
                         }
                         let feature = device.get_feature(vk_13::inline_uniform_block::NAME)
-                            .ok_or(ShaderSetError::InlineUniformBlockNotEnabled)?;
+                            .ok_or(PipelineLayoutError::InlineUniformBlockNotEnabled)?;
                         resource.ty = DescriptorType::InlineUniformBlock;
                         let ShaderResourceCount::Static(count) = &mut resource.count else {
                             unsafe { ::core::hint::unreachable_unchecked() }
                         };
-                        let struct_size = match resource.struct_size.as_ref().unwrap() {
-                            leimu_spirv::reflect::TypeSizeHint::Static(size) => *size,
-                            leimu_spirv::reflect::TypeSizeHint::Struct(hole) => hole.resolve(
-                                attrs.fill_struct_hole.ok_or_else(|| ShaderSetError::UnresolvedStructSize {
-                                    resource_name: resource.name.clone()
-                                })?.get() as usize
-                            ),
-                            _ => unreachable!(),
-                        };
-                        resource.struct_size = Some(leimu_spirv::reflect::TypeSizeHint::Static(struct_size as usize));
-                        let struct_size = *count as usize * struct_size;
-                        let mut struct_size: u32 = struct_size.try_into().map_err(|_| ShaderSetError::StructSizeTooBig {
+                        let struct_size = *count as usize * struct_size.unwrap();
+                        let mut struct_size: u32 = struct_size.try_into().map_err(|_| PipelineLayoutError::StructSizeTooBig {
                             resource_name: resource.name.clone(),
                             resolved_size: struct_size,
                         })?;
                         struct_size = struct_size.next_multiple_of(4);
                         if struct_size > feature.max_size {
-                            Err(ShaderSetError::InlineUniformBlockTooBig {
+                            Err(PipelineLayoutError::InlineUniformBlockTooBig {
                                 resource_name: resource.name.clone(),
                                 resolved_size: struct_size,
                                 max_size: feature.max_size,
@@ -542,7 +597,7 @@ impl ShaderSet {
             .max_per_stage_resources();
         for (i, count) in per_stage_counts.into_iter().enumerate() {
             if count > max_resources {
-                Err(ShaderSetError::TooManyResourcesInStage {
+                Err(PipelineLayoutError::TooManyResourcesInStage {
                     count,
                     max_count: max_resources,
                     stage: SHADER_STAGES[i],
@@ -554,7 +609,7 @@ impl ShaderSet {
             let inline_uniform_block_counts = descriptor_counts[DescriptorType::InlineUniformBlock as usize];
             for (i, count) in inline_uniform_block_counts.into_iter().enumerate() {
                 if count > max_per_stage {
-                    Err(ShaderSetError::TooManyDescriptorsInStage {
+                    Err(PipelineLayoutError::TooManyDescriptorsInStage {
                         count,
                         max_count: max_per_stage,
                         stage: SHADER_STAGES[i],
@@ -564,7 +619,7 @@ impl ShaderSet {
             }
             let total_count: u32 = inline_uniform_block_counts.into_iter().sum();
             if total_count > feature.max_descriptor_set_blocks {
-                Err(ShaderSetError::TooManyDescriptors {
+                Err(PipelineLayoutError::TooManyDescriptors {
                     count: total_count,
                     max_count: feature.max_descriptor_set_blocks,
                     descriptor_types: &[DescriptorType::InlineUniformBlock],
@@ -573,7 +628,7 @@ impl ShaderSet {
             if let Some(max_total_size) = device.gpu_info().limits.max_inline_uniform_total_size()
                 && max_total_size < total_inline_uniform_block_size
             {
-                Err(ShaderSetError::MaxInlineUniformTotalSizeExceeded {
+                Err(PipelineLayoutError::MaxInlineUniformTotalSizeExceeded {
                     max_total_size,
                     total_size: total_inline_uniform_block_size,
                 })?
@@ -630,7 +685,7 @@ impl ShaderSet {
                 .enumerate()
             {
                 if count > max_per_stage {
-                    Err(ShaderSetError::TooManyDescriptorsInStage {
+                    Err(PipelineLayoutError::TooManyDescriptorsInStage {
                         count,
                         max_count: max_per_stage,
                         stage: SHADER_STAGES[i],
@@ -640,39 +695,163 @@ impl ShaderSet {
             }
             let all_counts: u32 = per_stage_counts.into_iter().sum();
             if all_counts > max_all {
-                Err(ShaderSetError::TooManyDescriptors {
+                Err(PipelineLayoutError::TooManyDescriptors {
                     count: all_counts,
                     max_count: max_all,
                     descriptor_types: types,
                 })?
             }
         }
-        vecs.2 = false;
+        vecs.2.resize(set_count, vk::DescriptorSetLayout::null());
+        let set_layouts = NonNull::slice_from_raw_parts(
+            set_layouts,
+            vecs.2.len() as usize,
+        );
+        let set_guard = DropGuard::new(
+            set_layouts,
+            |ptr| unsafe {
+                for &layout in ptr.iter() {
+                    device.functions()
+                        .destroy_descriptor_set_layout(
+                            layout,
+                            None,
+                        );
+                }
+            }
+        );
+        let v = &mut *vecs;
+        for (i, set) in v.2.iter_mut().enumerate_u32() {
+            let attrs = attributes
+                .set_attributes
+                .iter()
+                .find(|s| s.set == i)
+                .copied()
+                .unwrap_or(PipelineLayoutSetAttributes {
+                    set: i,
+                    push_descriptor: false,
+                });
+            let max_push_descriptors =
+                if attrs.push_descriptor
+                {
+                    let Some(feature) = device.get_feature(vk_14::push_descriptor::NAME) else {
+                        Err(PipelineLayoutError::PushDescriptorNotEnabled)?
+                    };
+                    feature.max_push_descriptors
+                } else {
+                    0
+                };
+            let binding_count = v.0
+                .iter()
+                .filter(|r| r.set == i)
+                .count_u32();
+            let mut bindings = FixedVec32
+                ::with_capacity_in(binding_count, &tmp_allocator)
+                .unwrap();
+            let mut num_push_descriptors = 0;
+            for r in v.0
+                .iter()
+                .filter(|r| r.set == i)
+            {
+                let descriptor_count = __variant_some!(
+                    ShaderResourceCount::Static = r.count
+                ).unwrap();
+                if attrs.push_descriptor {
+                    if r.ty == DescriptorType::InlineUniformBlock {
+                        Err(PipelineLayoutError::InvalidPushDescriptorType {
+                            descriptor_type: r.ty,
+                        })?
+                    }
+                    num_push_descriptors += descriptor_count;
+                }
+                bindings.push(vk::DescriptorSetLayoutBinding {
+                    binding: r.binding,
+                    descriptor_type: r.ty.into(),
+                    descriptor_count,
+                    stage_flags: r.shader_stage.into(),
+                    ..Default::default()
+                });
+            }
+            if num_push_descriptors > max_push_descriptors {
+                Err(PipelineLayoutError::TooManyPushDescriptors {
+                    count: num_push_descriptors,
+                    max_count: max_push_descriptors,
+                })?
+            }
+            let create_info = vk::DescriptorSetLayoutCreateInfo {
+                flags: if attrs.push_descriptor {
+                    vk::DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR
+                } else {
+                    default()
+                },
+                ..Default::default()
+            }.bindings(&bindings);
+            *set = unsafe {
+                device.functions()
+                    .create_descriptor_set_layout(
+                        &create_info,
+                        None
+                    ).describe_err("failed to create `VkDescriptorSetLayout")
+                    .map_err(PipelineLayoutError::Internal)?
+            };
+        }
+        let mut pcs = FixedVec32::with_capacity_in(
+            vecs.1.len(),
+            tmp_allocator
+        ).unwrap();
+        pcs.extend(vecs.1.iter().map(|pc| vk::PushConstantRange {
+            stage_flags: pc.shader_stage.into(),
+            offset: pc.offset,
+            size: pc.size,
+        }));
+        let create_info = vk::PipelineLayoutCreateInfo::default()
+            .set_layouts(&vecs.2)
+            .push_constant_ranges(&pcs);
+        let handle = unsafe {
+            device.functions()
+                .create_pipeline_layout(
+                    &create_info,
+                    None
+                ).describe_err("failed to create `VkPipelineLayout`")
+                .map_err(PipelineLayoutError::Internal)?
+        };
+        vecs.3 = false;
         let pack_layout = DropGuard::dismiss(alloc_guard).1;
+        DropGuard::dismiss(set_guard);
         unsafe {
             inner.write(Inner {
                 device,
                 ref_count: AtomicU64::new(1),
-                pipeline_layout: Mutex::default(),
+                handle: Mutex::new(handle),
+                resources: NonNull::slice_from_raw_parts(
+                    resources,
+                    vecs.0.len() as usize,
+                ),
+                push_constants: NonNull::slice_from_raw_parts(
+                    push_constants,
+                    vecs.1.len() as usize,
+                ),
+                set_layouts,
                 pack_layout,
             });
+        }
+        if let Some(tag) = attributes.tag {
+            log::info!("created `PipelineLayout` `{tag}`");
         }
         Ok(Self {
             inner,
             tag: tag_slice_ptr,
-            resources: NonNull::slice_from_raw_parts(
-                resources,
-                vecs.0.len() as usize,
-            ),
-            push_constants: NonNull::slice_from_raw_parts(
-                push_constants,
-                vecs.1.len() as usize,
-            ),
             allocator,
         })
     }
 
-    /// Gets the tag assigned to this shader set.
+    #[inline]
+    unsafe fn inner(&self) -> &Inner {
+        unsafe {
+            self.inner.as_ref()
+        }
+    }
+
+    /// Returns the tag assigned to this pipeline layout.
     #[inline]
     pub fn tag(&self) -> Option<&str> {
         let tag = self.tag?;
@@ -682,25 +861,33 @@ impl ShaderSet {
             )
         })
     }
+
+    /// Returns the [`Device`] used to create this layout.
+    #[inline]
+    pub fn device(&self) -> &Device {
+        unsafe {
+            &self.inner().device
+        }
+    }
    
-    /// Returns a slice over all [shader resources] in this shader set.
+    /// Returns a slice over all [shader resources] in this pipeline layout.
     ///
     /// [shader resources]: ShaderResource
     #[inline]
     pub fn resources(&self) -> &[ShaderResource] {
         unsafe {
-            self.resources
+            self.inner().resources
                 .as_ref()
         }
     }
 
-    /// Returns a slice over all [push constant ranges] in this shader set.
+    /// Returns a slice over all [push constant ranges] in this pipeline layout.
     ///
     /// [push constant ranges]: PushConstantRange
     #[inline]
     pub fn push_constant_ranges(&self) -> &[PushConstantRange] {
         unsafe {
-            self.push_constants
+            self.inner().push_constants
                 .as_ref()
         }
     }

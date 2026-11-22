@@ -1,192 +1,10 @@
-use std::rc::Rc;
-
-use core::{
-    task::{self, Waker, Poll},
-    pin::Pin,
-    ops::Deref,
-    sync::atomic::{self, AtomicBool},
-    cell::Cell,
-};
-
 use leimu::{DescribeResult, raw_window_handle::HasDisplayHandle};
 
 use leimu::mem::arena::Arena;
 
-pub use winit;
+use cwinit::{run_app, Event, winit};
 
-use winit::{
-    application::ApplicationHandler, event_loop::ActiveEventLoop,
-};
-
-pub enum Event {
-    Unset,
-    Resumed,
-    WindowEvent {
-        window_id: winit::window::WindowId,
-        event: winit::event::WindowEvent,
-    },
-}
-
-struct Polling<'a> {
-    polling: &'a AtomicBool,
-    exiting: &'a AtomicBool,
-}
-
-impl Future for Polling<'_> {
-
-    type Output = bool;
-
-    fn poll(self: Pin<&mut Self>, _: &mut task::Context<'_>) -> Poll<Self::Output> {
-        let polling = self.polling.fetch_not(atomic::Ordering::Relaxed);
-        if polling {
-            Poll::Ready(!self.exiting.load(atomic::Ordering::Relaxed))
-        } else {
-            Poll::Pending
-        }
-    }
-}
-
-struct Inner {
-    polling: AtomicBool,
-    exiting: AtomicBool,
-    event_loop: Cell<*const ActiveEventLoop>,
-    event: Cell<Event>,
-}
-
-#[derive(Clone)]
-pub struct EventLoop {
-    inner: Rc<Inner>,
-}
-
-impl EventLoop {
-
-    #[inline]
-    pub async fn poll(&mut self) -> bool {
-        (&mut Polling { polling: &self.inner.polling, exiting: &self.inner.exiting, }).await
-    }
-
-    /// Takes the current event of the event loop, replacing the value with [`Event::Unset`].
-    #[inline]
-    pub fn event(&self) -> Event {
-        self.inner.event.replace(Event::Unset)
-    }
-}
-
-impl Deref for EventLoop {
-
-    type Target = ActiveEventLoop;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        let event_loop = self.inner.event_loop.get();
-        assert!(!event_loop.is_null());
-        unsafe { &*event_loop }
-    }
-}
-
-type PinBoxFuture<Output> = Pin<Box<dyn Future<Output = Output>>>;
-
-struct App<F, E>
-    where F: AsyncFnOnce(EventLoop) -> Result<(), E> + 'static,
-{
-    resumed: bool,
-    f: Option<F>,
-    f_future: Option<PinBoxFuture<Result<(), E>>>,
-    result: Option<Result<(), E>>,
-    event_loop: EventLoop,
-}
-
-impl<F, E> App<F, E>
-    where F: AsyncFnOnce(EventLoop) -> Result<(), E> + 'static,
-{
-
-    pub fn new(f: F) -> Self {
-        Self {
-            resumed: false,
-            f: Some(f),
-            f_future: None,
-            result: None,
-            event_loop: EventLoop {
-                inner: Rc::new(Inner {
-                    polling: AtomicBool::new(true),
-                    exiting: AtomicBool::new(false),
-                    event_loop: Cell::new(core::ptr::null()),
-                    event: Cell::new(Event::Resumed),
-                }),
-            },
-        }
-    }
-
-    fn poll_once(&mut self, event_loop: &ActiveEventLoop, event: Event) -> Option<Result<(), E>> {
-        let f_future =
-            if let Some(f) = &mut self.f_future {
-                f
-            } else {
-                self.f_future.insert(Box::pin((self.f.take().unwrap())(self.event_loop.clone())))
-            };
-        self.event_loop.inner.event_loop.set(
-            (event_loop as *const ActiveEventLoop).cast_mut(),
-        );
-        self.event_loop.inner.event.set(event);
-        let mut cx = task::Context::from_waker(Waker::noop());
-        let res = match f_future.as_mut().poll(&mut cx) {
-            Poll::Ready(result) => {
-                Some(result)
-            },
-            Poll::Pending => None,
-        };
-        self.event_loop.inner.event_loop.set(core::ptr::null());
-        res
-    }
-}
-
-impl<F, E> ApplicationHandler for App<F, E>
-    where F: AsyncFnOnce(EventLoop) -> Result<(), E>,
-{
-
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.resumed {
-            return
-        }
-        self.resumed = true;
-        if let Some(result) = self.poll_once(event_loop, Event::Resumed) {
-            self.result = Some(result);
-            event_loop.exit();
-        }
-    }
-
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        window_id: winit::window::WindowId,
-        event: winit::event::WindowEvent,
-    )
-    {
-        let exiting = event_loop.exiting();
-        self.event_loop.inner.exiting.store(exiting, atomic::Ordering::Relaxed);
-        if exiting {
-            return
-        }
-        if let Some(result) = self.poll_once(
-            event_loop,
-            Event::WindowEvent { window_id, event },
-        ) {
-            self.result = Some(result);
-            event_loop.exit();
-        }
-    }
-}
-
-#[must_use]
-pub fn run_app<F, E>(app: F) -> Option<Result<(), E>>
-    where F: AsyncFnOnce(EventLoop) -> Result<(), E> + 'static
-{
-    let event_loop = winit::event_loop
-        ::EventLoop::new().expect("failed to create `winit::event_loop::EventLoop");
-    let mut app = App::new(app);
-    event_loop.run_app(&mut app).expect("failed to run app");
-    app.result
-}
+use winit::{window, event};
 
 fn main() -> Result<(), leimu::Error> {
     env_logger::init();
@@ -196,7 +14,7 @@ fn main() -> Result<(), leimu::Error> {
                 event_loop.display_handle().expect("failed to get display handle")
                     .as_raw()
             )?;
-        let window = event_loop.create_window(winit::window::WindowAttributes::default()
+        let window = event_loop.create_window(window::WindowAttributes::default()
             .with_title("test")
         ).describe_err("failed to create window")?;
         let surface = instance.create_surface(Some("test surface"), &window)?;
@@ -225,13 +43,27 @@ fn main() -> Result<(), leimu::Error> {
             [],
         )?;
         let comp_spv = include_bytes!("../comp.spv");
-        device.create_shader_module(
+        let shader = device.create_shader_module(
             leimu::ShaderModuleAttributes {
                 tag: Some("compute shader"),
                 spirv: leimu::bytemuck::cast_slice(comp_spv),
             },
             None,
-        ).describe_err("failed to validate shader")?;
+        ).describe_err("failed to validate shader")?
+        .in_entry_point(
+            Some("compute shader"),
+            leimu::ShaderStage::Compute,
+            "main",
+        ).describe_err("failed to validate compute shader")?;
+        device.create_pipeline_layout(
+            leimu::PipelineLayoutAttributes {
+                tag: Some("compute layout"),
+                ty: leimu::PipelineLayoutType::Compute { compute: &shader },
+                set_attributes: &[],
+                binding_attributes: &[],
+            },
+            None,
+        ).describe_err("failed to create pipeline layout")?;
         let present_queue = device.get_queue("present queue").unwrap();
         let swapchain = device.create_swapchain(
             Some("swapchain"),
@@ -249,7 +81,9 @@ fn main() -> Result<(), leimu::Error> {
             ::with_fallback(1 << 16)
             .unwrap();
         while event_loop.poll().await {
-            if let Event::WindowEvent { event: winit::event::WindowEvent::CloseRequested, .. } = event_loop.event() {
+            if let Event::WindowEvent {
+                event: event::WindowEvent::CloseRequested, ..
+            } = event_loop.event() {
                 break;
             }
             let window_size = window.inner_size();

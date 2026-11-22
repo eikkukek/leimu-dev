@@ -318,6 +318,7 @@ pub fn any_allocator<A: AllocatorSendSync + 'static>(a: A) -> AnyAllocator {
 }
 
 use mem::iter::CollectIn;
+use iter::IteratorExt;
 
 /// Constructs [`Duration`] from seconds in `f32`.
 ///
@@ -325,4 +326,19 @@ use mem::iter::CollectIn;
 #[inline]
 pub fn duration_from_secs(secs: f32) -> core::time::Duration {
     core::time::Duration::from_secs_f32(secs)
+}
+
+trait NonNullExt<T> {
+
+    unsafe fn iter(&self) -> ::core::slice::Iter<'_ ,T>;
+}
+
+impl<T> NonNullExt<T> for ::core::ptr::NonNull<[T]> {
+
+    #[inline]
+    unsafe fn iter(&self) -> ::core::slice::Iter<'_ ,T> {
+        unsafe {
+            self.as_ref().iter()
+        }
+    }
 }
