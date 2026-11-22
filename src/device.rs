@@ -121,10 +121,10 @@ pub struct DeviceAttributes {
 /// A structure specifying [`Device`] queue creation attributes.
 ///
 /// # Valid usage
-/// - The number of elements in [`queue_priorities`] and [`queue_labels`] **must** be equal.
+/// - The number of elements in [`queue_priorities`] and [`queue_tags`] **must** be equal.
 ///
 /// [`queue_priorities`]: Self::queue_priorities
-/// [`queue_labels`]: Self::queue_labels
+/// [`queue_tags`]: Self::queue_tags
 #[repr(C)]
 #[derive(Default, Clone)]
 pub struct DeviceQueueAttributes<'a> {
@@ -152,7 +152,7 @@ pub struct DeviceQueueAttributes<'a> {
     ///
     /// # Valid usage
     /// - The names **must** be unique within all queues across all [`DeviceQueueAttributes`].
-    pub queue_labels: Vec<&'a str>,
+    pub queue_tags: Vec<&'a str>,
 }
 impl SortByKey for DeviceQueueAttributes<'_> {
     type Key = u32;
@@ -181,17 +181,17 @@ static DEVICE_LOCK: Mutex<DeviceId> = Mutex::new(DeviceId(0));
 #[derive(Clone)]
 pub struct DeviceQueue {
     device_id: DeviceId,
-    label: CompactStr,
+    tag: CompactStr,
     handle: vk::Queue,
     family_index: u32,
 }
 
 impl DeviceQueue {
 
-    /// Gets the name of this queue as specified in [`DeviceQueueAttributes::queue_labels`].
+    /// Gets the name of this queue as specified in [`DeviceQueueAttributes::queue_tags`].
     #[inline]
-    pub fn label(&self) -> &str {
-        &self.label
+    pub fn tag(&self) -> &str {
+        &self.tag
     }
 
     /// Gets the [`DeviceId`] of the [`Device`] this queue originates from.
@@ -216,7 +216,7 @@ impl PartialEq for DeviceQueue {
 
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.label == other.label
+        self.tag == other.tag
     }
 }
 
@@ -226,7 +226,7 @@ impl Hash for DeviceQueue {
 
     #[inline]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.label.hash(state);
+        self.tag.hash(state);
     }
 }
 
@@ -234,7 +234,7 @@ impl Borrow<str> for DeviceQueue {
 
     #[inline]
     fn borrow(&self) -> &str {
-        self.label()
+        self.tag()
     }
 }
 
@@ -261,6 +261,7 @@ impl SubmitCache {
     ///
     /// The semaphores are the raw parts of a vector.
     #[inline]
+    #[allow(clippy::type_complexity)]
     fn get(&mut self) -> (
         &mut vk::CommandBuffer,
         &mut (NonNull<SemaphoreSubmitInfo>, u32, u32),
@@ -288,6 +289,7 @@ impl PollState {
     ///
     /// The semaphores are the raw parts of a vector.
     #[inline]
+    #[allow(clippy::type_complexity)]
     pub fn get_submit_cache(&mut self, queue: DeviceQueue) -> (
         &mut vk::CommandBuffer,
         &mut (NonNull<SemaphoreSubmitInfo>, u32, u32),
@@ -424,10 +426,10 @@ impl Device {
                     last_q.queue_family_index,
                 ))?
             }
-            if last_q.queue_labels.len() != last_q.queue_priorities.len() {
+            if last_q.queue_tags.len() != last_q.queue_priorities.len() {
                 Err(err!(
-                    "`queue_labels.len()` `{}` is not equal to `queue_priorities.len()` `{}`",
-                    last_q.queue_labels.len(), last_q.queue_priorities.len(),
+                    "`queue_tags.len()` `{}` is not equal to `queue_priorities.len()` `{}`",
+                    last_q.queue_tags.len(), last_q.queue_priorities.len(),
                 ))?
             }
             if last_q.queue_family_index == next_q.queue_family_index {
@@ -436,7 +438,7 @@ impl Device {
                     last_q.queue_family_index,
                 ))?
             }
-            for (i, (&name, priority)) in last_q.queue_labels.iter().zip(&last_q.queue_priorities).enumerate() {
+            for (i, (&name, priority)) in last_q.queue_tags.iter().zip(&last_q.queue_priorities).enumerate() {
                 queue_indices_and_names.push((last_q.queue_family_index, i as u32, name));
                 if !discrete_priorities.contains(&priority) {
                     discrete_priorities.push(priority);
@@ -468,13 +470,13 @@ impl Device {
                 last_q.queue_family_index,
             ))?
         }
-        if last_q.queue_labels.len() != last_q.queue_priorities.len() {
+        if last_q.queue_tags.len() != last_q.queue_priorities.len() {
             Err(err!(
-                "`queue_labels.len()` `{}` is not equal to `queue_priorities.len()` `{}`",
-                last_q.queue_labels.len(), last_q.queue_priorities.len(),
+                "`queue_tags.len()` `{}` is not equal to `queue_priorities.len()` `{}`",
+                last_q.queue_tags.len(), last_q.queue_priorities.len(),
             ))?
         }
-        for (i, (&name, priority)) in last_q.queue_labels.iter().zip(&last_q.queue_priorities).enumerate() {
+        for (i, (&name, priority)) in last_q.queue_tags.iter().zip(&last_q.queue_priorities).enumerate() {
             queue_indices_and_names.push((last_q.queue_family_index, i as u32, name));
             if !discrete_priorities.contains(&priority) {
                 discrete_priorities.push(priority);
@@ -546,7 +548,7 @@ impl Device {
             };
             let queue = DeviceQueue {
                 device_id,
-                label: name.into(),
+                tag: name.into(),
                 handle,
                 family_index,
             };
@@ -560,7 +562,7 @@ impl Device {
             if let Some(queue) = queues.get(name).cloned() {
                 if !queues.insert(DeviceQueue {
                     device_id,
-                    label: alias.into(),
+                    tag: alias.into(),
                     handle: queue.handle,
                     family_index: queue.family_index,
                 }) {
@@ -936,37 +938,12 @@ impl Device {
     ) -> Result<Image, Error>
     {
         Image::new(self.clone(), &attributes, allocator.unwrap_or_default())
-    }
-
-    /// Crates an [`ImageView`] with `image`, `attributes` and `allocator`.
-    ///
-    /// # Parameters
-    /// - `image`: the [`Image`] this view covers.
-    /// - `attributes`: the parameters used to create the view.
-    /// - `allocator`: this is **not** a GPU memory allocator, but a regular allocator implementing
-    ///   [`Allocator`]. It is used for allocating needed data for of the [`ImageView`] structure.
-    ///   If the allocator fails to allocate, this function will panic. The total
-    ///   allocation size can be queried with [`ImageViewAttributes::calculate_allocation_size`].
-    ///
-    /// # Valid usage
-    /// The valid parameters for creating the image are described in [`ImageViewAttributes`].
-    ///
-    /// [`Allocator`]: core::alloc::Allocator
-    #[inline]
-    pub fn create_image_view(
-        &self,
-        image: Image,
-        attributes: ImageViewAttributes<'_>,
-        allocator: Option<AnyAllocator>,
-    ) -> Result<ImageView, Error>
-    {
-        ImageView::new(image, attributes, allocator.unwrap_or_default())
-    }
+    } 
 
     /// Creates a [`CommandPool`].
     ///
     /// # Parameters
-    /// - `label`: an optional debug label assigned to this command pool.
+    /// - `tag`: an optional debug tag assigned to this command pool.
     /// - `queue`: the [`DeviceQueue`] that [command buffers] allocated from this pool are
     ///   submitted to.
     ///
@@ -977,10 +954,10 @@ impl Device {
     #[inline]
     pub fn create_command_pool( 
         &self,
-        label: Option<&str>,
+        tag: Option<&str>,
         queue: DeviceQueue,
     ) -> Result<CommandPool, Error> {
-        CommandPool::new(self.clone(), label, queue)
+        CommandPool::new(self.clone(), tag, queue)
     }
 
     /// Creates a [`Swapchain`].
@@ -998,12 +975,12 @@ impl Device {
     #[inline]
     pub fn create_swapchain<'a>(
         &self,
-        label: Option<&str>,
+        tag: Option<&str>,
         surface: Surface<'a>,
         present_queue: DeviceQueue,
     ) -> Result<Swapchain<'a>, Error> {
         Swapchain::new(
-            label,
+            tag,
             surface,
             self.clone(),
             present_queue,
@@ -1028,6 +1005,26 @@ impl Device {
         allocator: Option<AnyAllocator>,
     ) -> Result<ShaderModule, ShaderValidationError> {
         ShaderModule::new(self.clone(), attributes, allocator.unwrap_or_default())
+    }
+
+    /// Creates a [`ShaderSet`].
+    ///
+    /// # Parameters
+    /// - `attributes`: the parameters used to create this set.
+    /// - `allocator`: this is **not** a GPU memory allocator, but a regular allocator implementing
+    ///   [`Allocator`]. It is used for allocating needed data for of the [`ShaderSet`] structure.
+    ///   If the allocator fails to allocate, this function will panic. The total
+    ///   allocation size can be queried with [`ShaderSetAttributes::calculate_allocation_size`].
+    ///
+    /// # Valid usage
+    /// Valid usage is described in [`ShaderSetAttributes`].
+    #[inline]
+    pub fn create_shader_set(
+        &self,
+        attributes: ShaderSetAttributes<'_>,
+        allocator: Option<AnyAllocator>,
+    ) -> Result<ShaderSet, ShaderSetError> {
+        ShaderSet::new(self.clone(), attributes, allocator.unwrap_or_default())
     }
 
     /// Advances the runtime once.

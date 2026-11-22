@@ -189,11 +189,7 @@ pub(super) mod prelude {
     impl error::Error for FormatQueryError {
 
         fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-            if let Self::InternalError(err) = self {
-                Some(err)
-            } else {
-                None
-            }
+            __variant_some!(Self::InternalError = self)
         }
     }
 
@@ -240,6 +236,114 @@ pub(super) mod prelude {
         }
     }
     impl error::Error for ShaderValidationError {}
+
+    /// A reflection error returned by [`ShaderModule::in_entry_point`].
+    #[derive(Debug)]
+    pub enum ShaderReflectError {
+        /// Indicates that the entry point was not found.
+        EntryPointNotFound(ShaderStage, String),
+        /// Indicates a general reflection error.
+        ReflectError(spirv::reflect::ReflectError),
+        /// Indicates that a descriptor set was not found for a resource.
+        NoDescriptorSet(CompactStr),
+        /// Indicates that a descriptor binding was not found for a resource.
+        NoDescriptorBinding(CompactStr),
+        /// Indicates that the shader has more than one push constant.
+        TooManyPushConstants,
+    }
+
+    impl Display for ShaderReflectError {
+
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Self::EntryPointNotFound(stage, name) => {
+                    write!(f, "entry point with shader stage {stage:?} and name {name} not found")
+                },
+                Self::ReflectError(_) => {
+                    write!(f, "reflection error")
+                },
+                Self::NoDescriptorSet(name) => {
+                    write!(f, "descriptor set not found for resource `{name}`")
+                },
+                Self::NoDescriptorBinding(name) => {
+                    write!(f, "descriptor binding not found for resource `{name}`")
+                },
+                Self::TooManyPushConstants => {
+                    write!(f, "more than one push constant range specified for shader")
+                },
+            }
+        }
+    }
+    impl error::Error for ShaderReflectError {
+        #[inline]
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            __variant_some!(Self::ReflectError = self)
+        }
+    }
+
+    #[derive(Debug)]
+    pub enum ShaderSetError {
+        MismatchedShaderStage {
+            tag: Option<String>,
+            expected: ShaderStage,
+            found: ShaderStage,
+        },
+        DuplicateSetBinding {
+            set: u32,
+            binding: u32,
+        },
+        InlineUniformBlockNotEnabled,
+        InvalidInlineUniformBlock {
+            name: CompactStr,
+            found_type: DescriptorType,
+        },
+        UnresolvedStructSize {
+            resource_name: CompactStr,
+        },
+        StructSizeTooBig {
+            resource_name: CompactStr,
+            resolved_size: usize,
+        },
+        InlineUniformBlockTooBig {
+            resource_name: CompactStr,
+            resolved_size: u32,
+            max_size: u32,
+        },
+        TooManyDescriptors {
+            count: u32,
+            max_count: u32,
+            descriptor_types: &'static [DescriptorType],
+        },
+        TooManyDescriptorsInStage {
+            count: u32,
+            max_count: u32,
+            stage: ShaderStage,
+            descriptor_types: &'static [DescriptorType],
+        },
+        MaxInlineUniformTotalSizeExceeded {
+            max_total_size: u32,
+            total_size: u32,
+        },
+        TooManyResourcesInStage {
+            count: u32,
+            max_count: u32,
+            stage: ShaderStage,
+        },
+        InvalidPushConstantOffset {
+            offset: u32,
+            stage: ShaderStage,
+        },
+        InvalidPushConstantSize {
+            size: u32,
+            stage: ShaderStage,
+        },
+        PushConstantOutOfRange {
+            offset: u32,
+            size: u32,
+            max_size: u32,
+            stage: ShaderStage,
+        },
+    }
 }
 
 #[macro_export]

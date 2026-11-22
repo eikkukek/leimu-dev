@@ -12,6 +12,7 @@ pub struct GpuLimits {
     pub(crate) max_buffer_size: DeviceSize,
     pub(crate) max_multiview_count: u32,
     pub(crate) supported_subgroup_operations: SubgroupFeatures,
+    pub(crate) max_inline_uniform_total_size: Option<u32>,
 }
 impl GpuLimits {
 
@@ -19,6 +20,14 @@ impl GpuLimits {
     #[inline]
     pub fn max_buffer_size(&self) -> DeviceSize {
         self.max_buffer_size
+    }
+
+    /// Returns the maximum total size of inline uniform blocks in a shader set.
+    ///
+    /// If the Vulkan version of the device is less than 1.3, this will return `None`.
+    #[inline]
+    pub fn max_inline_uniform_total_size(&self) -> Option<u32> {
+        self.max_inline_uniform_total_size
     }
 
     /// This value - 1 specifies the maximum index that the most significant bit of [`RenderLayers::Mask`] **can**
@@ -147,8 +156,11 @@ impl GpuLimits {
         self.vk_10.max_bound_descriptor_sets
     }
    
-    /// The maximum number of samplers that **can** be accessible to a single shader stage in
-    /// a set of shaders.
+    /// The maximum number of [samplers] and [combined image samplers] that **can** be accessible to a
+    /// single shader stage in a set of shaders.
+    ///
+    /// [samplers]: DescriptorType::Sampler
+    /// [combined image samplers]: DescriptorType::CombinedImageSampler
     #[inline]
     pub fn max_per_stage_descriptor_samplers(&self) -> u32 {
         self.vk_10.max_per_stage_descriptor_samplers

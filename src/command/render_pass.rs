@@ -952,8 +952,8 @@ impl<'veiw> DepthStencilAttachment<'veiw> {
 /// [render pass]: CommandBufferRecorder::render_pass
 #[derive(Default)]
 pub struct RenderPassAttributes<'a, 'b> {
-    /// An optional label of this render pass.
-    pub label: Option<&'b str>,
+    /// An optional tag of this render pass.
+    pub tag: Option<&'b str>,
     /// The area rendered to.
     ///
     /// # Valid usage
@@ -992,7 +992,7 @@ pub struct RenderPassAttributes<'a, 'b> {
 ///
 /// To record a render pass use the [`CommandBufferRecorder::render_pass`] method.
 pub struct ActiveRenderPass<'a, 'b, 'buffer> {
-    label: Option<&'b str>,
+    tag: Option<&'b str>,
     color_attachments: FixedVec32<ColorAttachment<'b>, &'b dyn Allocator>,
     depth_stencil_attachment: DepthStencilAttachment<'b>,
     recorder: &'a mut CommandBufferRecorder<'buffer>,
@@ -1007,8 +1007,8 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
         allocator: &'b dyn Allocator,
     ) -> Result<ActiveRenderPass<'_, 'b, 'buffer>, Error>
     {
-        if let Some(label) = &attributes.label {
-            log::trace!("validating render pass `{label}`");
+        if let Some(tag) = &attributes.tag {
+            log::trace!("validating render pass `{tag}`");
         }
         self.command_buffer.signal_sync_scope |= vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT;
         if attributes.render_area.width == 0 {
@@ -1162,8 +1162,8 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
         }.color_attachments(&color_attachments)
         .depth_attachment(depth_attachment.as_ref())
         .stencil_attachment(stencil_attachment.as_ref());
-        if let Some(label) = &attributes.label {
-            log::trace!("beginning render pass `{label}`");
+        if let Some(tag) = &attributes.tag {
+            log::trace!("beginning render pass `{tag}`");
         }
         unsafe {
             device
@@ -1175,7 +1175,7 @@ impl<'buffer> CommandBufferRecorder<'buffer> {
         }
         self.command_buffer.state_cache = Some(state_cache);
         Ok(ActiveRenderPass {
-            label: attributes.label,
+            tag: attributes.tag,
             color_attachments: attributes.color_attachments
                 .iter()
                 .copied()
@@ -1200,8 +1200,8 @@ impl<'a, 'b, 'buffer> Drop for ActiveRenderPass<'a, 'b, 'buffer> {
     fn drop(&mut self) {
         unsafe {
             let handle = self.recorder.command_buffer.handle();
-            if let Some(label) = self.label {
-                log::trace!("ending render pass `{label}`");
+            if let Some(tag) = self.tag {
+                log::trace!("ending render pass `{tag}`");
             }
             self.recorder
                 .command_buffer

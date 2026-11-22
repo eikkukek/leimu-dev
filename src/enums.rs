@@ -372,64 +372,6 @@ impl From<VertexInputRate> for vk::VertexInputRate {
         Self::from_raw(value as i32)
     }
 }
-
-/// Specifies the type of a shader descriptor.
-///
-/// The default value is [`Sampler`][Self::Sampler].
-#[repr(i32)]
-#[derive(Default, Clone, Copy, Zeroable, ByteEq, ByteHash)]
-pub enum DescriptorType {
-    /// Specifies a sampler descriptor.
-    /// # SPIR-V type
-    /// `OpTypeSampler`.
-    #[default]
-    Sampler = 0,
-    /// Specifies combined image/sampler descriptor
-    /// # SPIR-V type
-    /// `OpTypeSampledImage`.
-    ImageSampler = 1,
-    /// Specifies a sampled image descriptor.
-    /// # SPIR-V type
-    /// `OpTypeImage` with `sampled = 1`.
-    SampledImage = 2,
-    /// Specifies a storage image descriptor.
-    /// # SPIR-V type
-    /// `OpTypeImage` with `sampled = 2`.
-    StorageImage = 3,
-    /// Specifies a uniform texel buffer descriptor 
-    /// # SPIR-V type
-    /// `OpTypeImage` with `dim = Buffer` and `sampled = 1`.
-    UniformTexelBuffer = 4,
-    /// Specifies a storage texel buffer descriptor.
-    /// # SPIR-V type
-    /// `OpTypeImage` with `dim = Buffer` and `sampled = 2`
-    StorageTexelBuffer = 5,
-    /// Specifies a uniform buffer descriptor.
-    /// # SPIR-V type
-    /// Block decorated `OpTypeStruct` in a variable of `Uniform` storage class.
-    UniformBuffer = 6,
-    /// Specifies a storage buffer descriptor.
-    /// # SPIR-V type
-    /// Block decorated `OpTypeStruct` in a variable of `StorageBuffer` storage class.
-    StorageBuffer = 7,
-    /// Specifies a uniform buffer descriptor.
-    /// # SPIR-V type
-    /// Defined identically as [`UniformBuffer`][Self::UniformBuffer]
-    UniformBufferDynamic = 8,
-    /// Specifies a storage buffer descriptor.
-    /// # SPIR-V type
-    /// Defined identically as [`StorageBuffer`][Self::StorageBuffer]
-    StorageBufferDynamic = 9,
-    /// Specifies an input attachment descriptor.
-    /// # SPIR-V type
-    /// `OpTypeImage` with `dim = SubpassData`
-    InputAttachment = 10,
-    /// Specifies an input inline uniform block.
-    /// # SPIR-V type
-    /// Defined identically as [`UniformBuffer`][Self::UniformBuffer]
-    InlineUniformBlock = 1000138000,
-}
-unsafe impl NoUninit for DescriptorType {}
 /// Represents a single [`SampleCounts`] bit.
 ///
 /// The default value is 1 sample per pixel.

@@ -151,6 +151,17 @@ impl GpuInfo {
                     &mut memory_properties2,
                 );
         }
+        let max_inline_uniform_total_size = (api_version >= VULKAN_API_VERSION_1_3).then(|| {
+            let mut properties = vk::PhysicalDeviceVulkan13Properties::default();
+            let mut properties2 = vk::PhysicalDeviceProperties2
+                ::default()
+                .push_next(&mut properties);
+            unsafe {
+                instance.functions()
+                    .get_physical_device_properties2(handle, &mut properties2);
+            }
+            properties.max_inline_uniform_total_size
+        });
         let mut ctx = FeatureQueryContext::new(
             instance.clone(),
             Self { 
@@ -180,6 +191,7 @@ impl GpuInfo {
                         independent_resolve: depth_stenci_resolve_properties.independent_resolve != 0,
                     },
                     max_buffer_size: maintenance4_properties.max_buffer_size,
+                    max_inline_uniform_total_size,
                     max_multiview_count: vk_11_properties.max_multiview_view_count,
                     supported_subgroup_operations: SubgroupFeatures::from_bits_truncate(vk_11_properties
                         .subgroup_supported_operations.as_raw()

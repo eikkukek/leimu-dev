@@ -220,14 +220,14 @@ fn main() -> Result<(), leimu::Error> {
             [leimu::DeviceQueueAttributes {
                 queue_family_index: present_family.index,
                 queue_priorities: vec![1.0],
-                queue_labels: vec!["present queue"],
+                queue_tags: vec!["present queue"],
             }],
             [],
         )?;
         let comp_spv = include_bytes!("../comp.spv");
         device.create_shader_module(
             leimu::ShaderModuleAttributes {
-                label: Some("compute shader"),
+                tag: Some("compute shader"),
                 spirv: leimu::bytemuck::cast_slice(comp_spv),
             },
             None,
@@ -244,7 +244,7 @@ fn main() -> Result<(), leimu::Error> {
         )?;
         let mut command_buffer = command_pool
             .allocate_command_buffer()?
-            .with_label("render pass command buffer");
+            .with_tag("render pass command buffer");
         let tmp_arena = Arena
             ::with_fallback(1 << 16)
             .unwrap();
@@ -283,7 +283,7 @@ fn main() -> Result<(), leimu::Error> {
                     )?;
                     let pass = recorder.render_pass(
                         leimu::RenderPassAttributes {
-                            label: Some("clear pass"),
+                            tag: Some("clear pass"),
                             render_area: leimu::RenderArea {
                                 width: window_size.width,
                                 height: window_size.height,

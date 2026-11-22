@@ -85,7 +85,7 @@ struct State {
 }
 
 struct Inner<'a> {
-    label: Option<CompactStr>,
+    tag: Option<CompactStr>,
     surface: Surface<'a>,
     device: Device,
     state: Mutex<State>,
@@ -109,8 +109,8 @@ impl Drop for Inner<'_> {
                     handle, None
                 );
             }
-            if let Some(label) = &self.label {
-                log::info!("destroyed `Swapchain` `{label}`");
+            if let Some(tag) = &self.tag {
+                log::info!("destroyed `Swapchain` `{tag}`");
             }
         }
     }
@@ -159,7 +159,7 @@ pub struct Swapchain<'a> {
 impl<'a> Swapchain<'a> {
 
     pub(crate) fn new(
-        label: Option<&str>,
+        tag: Option<&str>,
         surface: Surface<'a>,
         device: Device,
         present_queue: DeviceQueue,
@@ -167,8 +167,8 @@ impl<'a> Swapchain<'a> {
         if surface.instance().id() != device.instance().id() {
             panic!("`surface` instance id is not the same as `self` instance id")
         }
-        if let Some(label) = label {
-            log::trace!("validating `Swapchain` `{label}`");
+        if let Some(tag) = tag {
+            log::trace!("validating `Swapchain` `{tag}`");
         }
         if !device.is_feature_enabled(vk_khr::swapchain::NAME)
         {
@@ -193,12 +193,12 @@ impl<'a> Swapchain<'a> {
                 command_pool.queue().family_index(),
             ))?
         }
-        if let Some(label) = label {
-            log::trace!("created `Swapchain` `{label}`");
+        if let Some(tag) = tag {
+            log::trace!("created `Swapchain` `{tag}`");
         }
         Ok(Self {
             inner: Inner {
-                label: label.map(Into::into),
+                tag: tag.map(Into::into),
                 surface,
                 device,
                 state: Mutex::new(State {
@@ -217,10 +217,10 @@ impl<'a> Swapchain<'a> {
         })
     }
 
-    /// Gets the label assigned to this swapchain.
+    /// Gets the tag assigned to this swapchain.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        self.inner.label.as_deref()
+    pub fn tag(&self) -> Option<&str> {
+        self.inner.tag.as_deref()
     }
 
     /// Gets the [`Surface`] used to create this swapchain.
@@ -240,8 +240,8 @@ impl<'a> Swapchain<'a> {
         lock: &mut MutexGuard<'_, State>,
         params: &mut PresentParameters<'_>,
     ) -> Result<(), Error> {
-        if let Some(label) = self.label() {
-            log::trace!("validating `Swapchain` {label}");
+        if let Some(tag) = self.tag() {
+            log::trace!("validating `Swapchain` {tag}");
         }
         let surface = self.surface();
         let surface_functions = surface
@@ -269,8 +269,8 @@ impl<'a> Swapchain<'a> {
                 surface.handle()
             )
         }.describe_err(||
-            if let Some(label) = self.surface().label() {
-                format!("failed to get GPU surface capabilities from `Surface` {label}")
+            if let Some(tag) = self.surface().tag() {
+                format!("failed to get GPU surface capabilities from `Surface` {tag}")
             } else {
                 "failed to get GPU surface capabilities".to_string()
             }
@@ -280,8 +280,8 @@ impl<'a> Swapchain<'a> {
                 physical_device,
                 surface.handle(),
             ).describe_err(
-                if let Some(label) = self.surface().label() {
-                    format!("failed to get GPU surface present modes from `Surface` {label}")
+                if let Some(tag) = self.surface().tag() {
+                    format!("failed to get GPU surface present modes from `Surface` {tag}")
                 } else {
                     "failed to get GPU surface present modes".to_string()
                 }
@@ -315,8 +315,8 @@ impl<'a> Swapchain<'a> {
                 physical_device,
                 surface.handle(),
             ).describe_err(
-                if let Some(label) = self.label() {
-                    format!("failed to get GPU surface present modes from `Surface` {label}")
+                if let Some(tag) = self.tag() {
+                    format!("failed to get GPU surface present modes from `Surface` {tag}")
                 } else {
                     "failed to get GPU surface present modes".to_string()
                 })?.0;
@@ -351,13 +351,13 @@ impl<'a> Swapchain<'a> {
                 "selected `CompositeAlphaBit` {composite_alpha:?} is not supported on this surface",
             ))?
         }
-        if let Some(label) = self.label() {
-            log::trace!("selected min image count {image_count} for `Swapchain` {label}");
-            log::trace!("selected present mode {present_mode} for `Swapchain` {label}");
-            log::trace!("selected image format {format} in color space {colors_space} for `Swapchain` {label}");
-            log::trace!("selected image width {width} for `Swapchain` {label}");
-            log::trace!("selected image height {height} for `Swapchain` {label}");
-            log::trace!("selected composite alpha {composite_alpha:?} for `Swapchain` {label}");
+        if let Some(tag) = self.tag() {
+            log::trace!("selected min image count {image_count} for `Swapchain` {tag}");
+            log::trace!("selected present mode {present_mode} for `Swapchain` {tag}");
+            log::trace!("selected image format {format} in color space {colors_space} for `Swapchain` {tag}");
+            log::trace!("selected image width {width} for `Swapchain` {tag}");
+            log::trace!("selected image height {height} for `Swapchain` {tag}");
+            log::trace!("selected composite alpha {composite_alpha:?} for `Swapchain` {tag}");
         }
         if !capabilities.supported_usage_flags.contains(vk::ImageUsageFlags::COLOR_ATTACHMENT) {
             Err(err!(
@@ -410,10 +410,9 @@ impl<'a> Swapchain<'a> {
                             .height(height)
                     )
                 };
-                device.create_image_view(
-                    image,
+                image.create_view(
                     ImageViewAttributes {
-                        label: None,
+                        tag: None,
                         format: None,
                         dimensions: ImageViewDim::Dim2,
                         range: default(),

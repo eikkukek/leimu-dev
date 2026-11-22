@@ -31,7 +31,7 @@ impl BufferAttributes<'_> {
     /// Calculates how much extra (CPU) memory the created [`Buffer`] will allocate.
     #[inline]
     pub fn calculate_allocation_size(&self) -> usize {
-        size_of::<Inner>() + self.label.map(|l| l.len()).unwrap_or_default()
+        size_of::<Inner>() + self.tag.map(|l| l.len()).unwrap_or_default()
     }
 }
 
@@ -49,10 +49,13 @@ struct Inner {
 ///
 /// To create a buffer, use [`Device::create_buffer`].
 pub struct Buffer {
-    label: (Option<NonNull<u8>>, usize),
+    tag: (Option<NonNull<u8>>, usize),
     inner: NonNull<Inner>,
     allocator: AnyAllocator,
 }
+
+unsafe impl Send for Buffer {}
+unsafe impl Sync for Buffer {}
 
 impl Buffer
 {
@@ -142,23 +145,23 @@ impl Buffer
                 ).describe_err("failed to bind buffer memory")?
         }
         let mut inner = NonNull::dangling();
-        let mut label_ptr = None;
-        let mut label_len = 0;
-        let pack_allocation = if let Some(label) = attributes.label {
-            label_len = label.len();
-            let label_ptr = label_ptr.insert(NonNull::dangling());
+        let mut tag_ptr = None;
+        let mut tag_len = 0;
+        let pack_allocation = if let Some(tag) = attributes.tag {
+            tag_len = tag.len();
+            let tag_ptr = tag_ptr.insert(NonNull::dangling());
             let allocation = pack_alloc(
                 &allocator,
                 [
                     pack_block(&mut inner, 1).unwrap(),
-                    pack_block(label_ptr, label.len()).unwrap(),
+                    pack_block(tag_ptr, tag.len()).unwrap(),
                 ]
             ).expect("allocation failed");
             unsafe {
-                label.as_ptr()
+                tag.as_ptr()
                     .copy_to_nonoverlapping(
-                        label_ptr.as_ptr(),
-                        label.len(),
+                        tag_ptr.as_ptr(),
+                        tag.len(),
                     );
             }
             allocation
@@ -183,12 +186,12 @@ impl Buffer
                 pack_layout: pack_allocation.1,
             });
         }
-        if let Some(label) = attributes.label {
-            log::info!("created `Buffer` `{label}`")
+        if let Some(tag) = attributes.tag {
+            log::info!("created `Buffer` `{tag}`")
         }
         Ok(Self {
             inner,
-            label: (label_ptr, label_len),
+            tag: (tag_ptr, tag_len),
             allocator,
         })
     }
@@ -201,15 +204,15 @@ impl Buffer
         }
     }
 
-    /// Gets the label assigned to this buffer.
+    /// Gets the tag assigned to this buffer.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        let label_ptr = self.label.0?;
+    pub fn tag(&self) -> Option<&str> {
+        let tag_ptr = self.tag.0?;
         Some(unsafe {
             str::from_utf8_unchecked(
                 slice::from_raw_parts(
-                    label_ptr.as_ptr(),
-                    self.label.1,
+                    tag_ptr.as_ptr(),
+                    self.tag.1,
                 )
             )
         })
@@ -292,7 +295,7 @@ impl Buffer
         {
             f(Err(err!(
                 "`Buffer` `{}` is non-mappable",
-                self.label().unwrap_or("unnamed"),
+                self.tag().unwrap_or("unnamed"),
             ))).unwrap();
             return
         }
@@ -359,11 +362,11 @@ impl Clone for Buffer
     fn clone(&self) -> Self {
         unsafe {
             self.inner.as_ref().ref_count
-                .add(1, atomic::Ordering::Release);
+                .add(1, atomic::Ordering::AcqRel);
         }
         Self {
             inner: self.inner,
-            label: self.label,
+            tag: self.tag,
             allocator: self.allocator.clone(),
         }
     }
@@ -384,11 +387,11 @@ impl Drop for Buffer
                     .destroy_buffer(self.handle(), None);
                 self.device()
                     .deallocate_memory(*self.memory());
-                if let Some(label) = self.label() {
-                    log::info!("destroyed `Buffer` `{label}`")
-                }
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
+                if let Some(tag) = self.tag() {
+                    log::info!("destroyed `Buffer` `{tag}`")
+                }
                 self.allocator
                     .deallocate(self.inner.cast(), pack_layout);
             }

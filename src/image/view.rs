@@ -92,7 +92,7 @@ impl ImageViewAttributes<'_> {
     /// Calculates how much extra (CPU) memory the created [`ImageView`] will allocate.
     #[inline]
     pub fn calculate_allocation_size(&self) -> usize {
-        size_of::<Inner>() + self.label.map(|l| l.len()).unwrap_or_default()
+        size_of::<Inner>() + self.tag.map(|l| l.len()).unwrap_or_default()
     }
 }
 
@@ -113,9 +113,12 @@ struct Inner
 pub struct ImageView
 {
     inner: NonNull<Inner>,
-    label: (Option<NonNull<u8>>, usize),
+    tag: (Option<NonNull<u8>>, usize),
     allocator: AnyAllocator,
 }
+
+unsafe impl Send for ImageView {}
+unsafe impl Sync for ImageView {}
 
 impl ImageView
 {
@@ -124,8 +127,8 @@ impl ImageView
         attributes: ImageViewAttributes<'_>,
         allocator: AnyAllocator,
     ) -> Result<Self, Error> {
-        if let Some(label) = attributes.label {
-            log::info!("validating parameters for `ImageView` `{label}`");
+        if let Some(tag) = attributes.tag {
+            log::info!("validating parameters for `ImageView` `{tag}`");
         }
         let require_one_of = 
             ImageUsages::SAMPLED |
@@ -391,23 +394,23 @@ impl ImageView
             }
         );
         let mut inner = NonNull::dangling();
-        let mut label_ptr = None;
-        let mut label_len = 0;
-        let pack_allocation = if let Some(label) = attributes.label {
-            label_len = label.len();
-            let label_ptr = label_ptr.insert(NonNull::dangling());
+        let mut tag_ptr = None;
+        let mut tag_len = 0;
+        let pack_allocation = if let Some(tag) = attributes.tag {
+            tag_len = tag.len();
+            let tag_ptr = tag_ptr.insert(NonNull::dangling());
             let allocation = pack_alloc(
                 &allocator,
                 [
                     pack_block(&mut inner, 1).unwrap(),
-                    pack_block(label_ptr, label.len()).unwrap(),
+                    pack_block(tag_ptr, tag.len()).unwrap(),
                 ]
             ).expect("allocation failed");
             unsafe {
-                label.as_ptr()
+                tag.as_ptr()
                     .copy_to_nonoverlapping(
-                        label_ptr.as_ptr(),
-                        label.len(),
+                        tag_ptr.as_ptr(),
+                        tag.len(),
                     );
             }
             allocation
@@ -432,10 +435,10 @@ impl ImageView
                 pack_layout: pack_allocation.1,
             });
         }
-        if let Some(label) = attributes.label {
-            log::info!("created `ImageView` `{label}`");
+        if let Some(tag) = attributes.tag {
+            log::info!("created `ImageView` `{tag}`");
         }
-        Ok(Self { inner, label: (label_ptr, label_len), allocator })
+        Ok(Self { inner, tag: (tag_ptr, tag_len), allocator })
     }
 
     unsafe fn inner(&self) -> &Inner {
@@ -444,15 +447,15 @@ impl ImageView
         }
     }
 
-    /// Gets the label assigned to this image view.
+    /// Gets the tag assigned to this image view.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        let label_ptr = self.label.0?;
+    pub fn tag(&self) -> Option<&str> {
+        let tag_ptr = self.tag.0?;
         Some(unsafe {
             str::from_utf8_unchecked(
                 slice::from_raw_parts(
-                    label_ptr.as_ptr(),
-                    self.label.1,
+                    tag_ptr.as_ptr(),
+                    self.tag.1,
                 )
             )
         })
@@ -514,11 +517,11 @@ impl Clone for ImageView
     fn clone(&self) -> Self {
         unsafe {
             self.inner.as_ref().ref_count
-                .add(1, atomic::Ordering::Release);
+                .add(1, atomic::Ordering::AcqRel);
         }
         Self {
             inner: self.inner,
-            label: self.label,
+            tag: self.tag,
             allocator: self.allocator.clone(),
         }
     }
@@ -537,11 +540,11 @@ impl Drop for ImageView
                 self.device()
                     .functions()
                     .destroy_image_view(self.handle(), None);
-                if let Some(label) = self.label() {
-                    log::info!("destroyed `ImageView` `{label}`")
-                }
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
+                if let Some(tag) = self.tag() {
+                    log::info!("destroyed `ImageView` `{tag}`")
+                }
                 self.allocator
                     .deallocate(self.inner.cast(), pack_layout);
             }

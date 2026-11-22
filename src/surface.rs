@@ -14,7 +14,7 @@ impl<T> WindowHandle for T
 {}
 
 struct Inner {
-    label: Option<CompactStr>,
+    tag: Option<CompactStr>,
     instance: Instance,
     handle: vk::SurfaceKHR,
 }
@@ -27,8 +27,8 @@ impl Drop for Inner {
                 .surface_functions()
                 .unwrap()
                 .destroy_surface(self.handle, None);
-            if let Some(label) = &self.label {
-                log::info!("destroyed `Surface` `{label}`");
+            if let Some(tag) = &self.tag {
+                log::info!("destroyed `Surface` `{tag}`");
             }
         }
     }
@@ -48,11 +48,11 @@ impl<'a> Surface<'a> {
 
     pub(crate) fn new(
         instance: Instance,
-        label: Option<&str>,
+        tag: Option<&str>,
         window: &'a dyn WindowHandle,
     ) -> Result<Self, Error> {
-        if let Some(label) = label {
-            log::info!("validating `Surface` `{label}`");
+        if let Some(tag) = tag {
+            log::info!("validating `Surface` `{tag}`");
         }
         let display_handle = window
             .display_handle()
@@ -71,12 +71,12 @@ impl<'a> Surface<'a> {
                 .as_raw(),
             None,
         ).describe_err("failed to create `VkSurfaceKHR")? };
-        if let Some(label) = label {
-            log::info!("created `Surface` `{label}`");
+        if let Some(tag) = tag {
+            log::info!("created `Surface` `{tag}`");
         }
         Ok(Self {
             inner: Inner {
-                label: label.map(|label| label.into()),
+                tag: tag.map(|tag| tag.into()),
                 instance,
                 handle,
             }.arced(),
@@ -84,10 +84,10 @@ impl<'a> Surface<'a> {
         })
     }
 
-    /// Gets the label assigned to this surface.
+    /// Gets the tag assigned to this surface.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        self.inner.label.as_deref()
+    pub fn tag(&self) -> Option<&str> {
+        self.inner.tag.as_deref()
     }
 
     /// Gets the [`Instance`] used to create this surface.

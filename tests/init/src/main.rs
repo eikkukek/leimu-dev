@@ -34,14 +34,14 @@ fn main() -> Result<(), leimu::Error> {
     let graphics_queue_attr = leimu::DeviceQueueAttributes {
         queue_family_index: graphics_family.index,
         queue_priorities: vec![0.0],
-        queue_labels: vec!["graphics queue"],
+        queue_tags: vec!["graphics queue"],
     };
     let compute_queue_attr =    
         (graphics_family.index != compute_family.index).then(||
             leimu::DeviceQueueAttributes {
                 queue_family_index: graphics_family.index,
                 queue_priorities: vec![0.0],
-                queue_labels: vec!["compute queue"],
+                queue_tags: vec!["compute queue"],
             }
         );
     let queue_aliases = if compute_queue_attr.is_none() {
@@ -65,7 +65,7 @@ fn main() -> Result<(), leimu::Error> {
         .is_some()
     );
     let _sampler = device.create_sampler(leimu::SamplerAttributes {
-        label: Some("my sampler"),
+        tag: Some("my sampler"),
         flags: leimu::SamplerFlags::ANISOTROPY_ENABLE,
         mag_filter: leimu::SamplerFilter::Linear,
         min_filter: leimu::SamplerFilter::Linear,
@@ -76,7 +76,7 @@ fn main() -> Result<(), leimu::Error> {
     })?;
     let buffer = device.create_buffer(
         leimu::BufferAttributes {
-            label: Some("my buffer"),
+            tag: Some("my buffer"),
             size: 64,
             usage: leimu::BufferUsages::TRANSFER_SRC,
             memory_type: leimu::MemoryType::HostVisible,
@@ -110,13 +110,13 @@ fn main() -> Result<(), leimu::Error> {
         }
         Ok(())
     });
-    assert_eq!(_clone.label(), Some("my buffer"));
+    assert_eq!(_clone.tag(), Some("my buffer"));
     let view_formats = [
         leimu::Format::Bc1_Rgb_Unorm_Block,
     ];
     match device.create_image(
         leimu::ImageAttributes {
-            label: Some("my image"),
+            tag: Some("my image"),
             format: leimu::Format::Bc1_Rgb_Srgb_Block,
             usage: leimu::ImageUsages::SAMPLED,
             array_layers: 6,
@@ -129,7 +129,7 @@ fn main() -> Result<(), leimu::Error> {
     ) {
         Ok(img) => {
             let img = img.clone().clone().clone();
-            assert_eq!(Some("my image"), img.label());
+            assert_eq!(Some("my image"), img.tag());
         }
         Err(err) => {
             if let Some(src) = err.source() {
@@ -142,7 +142,7 @@ fn main() -> Result<(), leimu::Error> {
     let arena = leimu::mem::arena::Arena::new(1 << 16).unwrap();
     let cube_image = device.create_image(
         leimu::ImageAttributes  {
-            label: Some("cube image"),
+            tag: Some("cube image"),
             format: leimu::Format::R8g8b8a8_Srgb,
             usage: leimu::ImageUsages::SAMPLED,
             array_layers: 12,
@@ -157,7 +157,7 @@ fn main() -> Result<(), leimu::Error> {
     let cube_view = device.create_image_view(
         cube_image,
         leimu::ImageViewAttributes {
-            label: Some("cube view"),
+            tag: Some("cube view"),
             format: None,
             dimensions: leimu::ImageViewDim::Cube,
             range: leimu::ImageSubresourceRange::default()
@@ -168,7 +168,7 @@ fn main() -> Result<(), leimu::Error> {
     )?;
     let image_3d = device.create_image(
         leimu::ImageAttributes {
-            label: Some("3d image"),
+            tag: Some("3d image"),
             format: leimu::Format::R8g8b8a8_Srgb,
             usage: leimu::ImageUsages::SAMPLED,
             dimensions: leimu::ImageDim::Dim3,
@@ -183,7 +183,7 @@ fn main() -> Result<(), leimu::Error> {
     let view_3d_slice = device.create_image_view(
         image_3d.clone(),
         leimu::ImageViewAttributes {
-            label: Some("2d array of 3d"),
+            tag: Some("2d array of 3d"),
             format: Some(leimu::Format::R8g8b8a8_Srgb),
             dimensions: leimu::ImageViewDim::Dim2Array,
             range: leimu::ImageSubresourceRange::default()
@@ -196,7 +196,7 @@ fn main() -> Result<(), leimu::Error> {
     let view_3d_value = device.create_image_view(
         image_3d.clone(),
         leimu::ImageViewAttributes {
-            label: Some("2d slice of 3d"),
+            tag: Some("2d slice of 3d"),
             format: Some(leimu::Format::R8g8b8a8_Srgb),
             dimensions: leimu::ImageViewDim::Dim2,
             range: leimu::ImageSubresourceRange::default()
@@ -207,6 +207,6 @@ fn main() -> Result<(), leimu::Error> {
         None,
     )?;
     let view = view_3d_value;
-    println!("{}", view.label().unwrap());
+    println!("{}", view.tag().unwrap());
     Ok(())
 }

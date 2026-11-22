@@ -1,6 +1,17 @@
-use super::*;
+use smallvec::SmallVec;
+
+use crate::*;
+
+use spirv::{op, WordExt};
 
 use op::Capability;
+
+pub(super) type FpQuery = fn(&Device, &mut QueryArgs<'_>) -> Result<(), String>;
+
+pub(super) struct QueryArgs<'a> {
+    pub module: leimu_spirv::Module<'a>,
+    pub atomic_inst_ptr_types: SmallVec<[(op::Code, op::IdRef); 6]>,
+}
 
 macro_rules! cap {
     ($cap:expr, $feature:path) => {

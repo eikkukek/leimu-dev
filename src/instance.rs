@@ -180,7 +180,7 @@ impl Instance {
     /// Creates a [`Surface`].
     ///
     /// # Parameters
-    /// - `label`: an optional debug label of the surface.
+    /// - `tag`: an optional debug tag of the surface.
     /// - `window`: A reference to [`HasDisplayHandle`][1] + [`HasWindowHandle`][2] objects.
     ///
     /// # Valid usage
@@ -193,11 +193,11 @@ impl Instance {
     #[inline]
     pub fn create_surface<'a>(
         &self,
-        label: Option<&str>,
+        tag: Option<&str>,
         window: &'a dyn WindowHandle,
     ) -> Result<Surface<'a>, Error>
     {
-        Surface::new(self.clone(), label, window)
+        Surface::new(self.clone(), tag, window)
     }
 
     /// Finds all GPUs that match the given `attributes` and returns [`SuitableGpus`], which can be
@@ -326,7 +326,7 @@ impl SuitableGpus {
     /// - `queue_attributes`: an iterator yielding [`DeviceQueueAttributes`] specifying attributes
     ///   for creating [device queues][DeviceQueue].
     /// - `queue_aliases`: an iterator yielding `(name, alias)` pairs specifying aliases for
-    ///   [`queue_labels`][DeviceQueueAttributes::queue_labels].
+    ///   [`queue_tags`][DeviceQueueAttributes::queue_tags].
     /// 
     /// # Valid usage
     /// - `queue_attributes` **must** contain at least one item.

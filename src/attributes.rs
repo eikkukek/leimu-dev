@@ -6,8 +6,8 @@ use crate::*;
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct SamplerAttributes<L> {
-    /// An optional debug label of the sampler.
-    pub label: Option<L>,
+    /// An optional debug tag of the sampler.
+    pub tag: Option<L>,
     /// A bitmask of sampler attributes.
     ///
     /// The default value is no flags set.
@@ -88,11 +88,11 @@ pub struct SamplerAttributes<L> {
 }
 impl<L> SamplerAttributes<L> {
 
-    /// Maps the label type.
+    /// Maps the tag type.
     #[inline]
-    pub fn map_label<U>(self, f: impl FnOnce(Option<L>) -> Option<U>) -> SamplerAttributes<U> {
+    pub fn map_tag<U>(self, f: impl FnOnce(Option<L>) -> Option<U>) -> SamplerAttributes<U> {
         SamplerAttributes {
-            label: f(self.label),
+            tag: f(self.tag),
             flags: self.flags,
             mag_filter: self.mag_filter,
             min_filter: self.min_filter,
@@ -115,8 +115,8 @@ impl<L> SamplerAttributes<L> {
 /// The valid parameters of this structure is described in each field.
 #[derive(Clone, Copy)]
 pub struct BufferAttributes<L> {
-    /// An optional debug label of the buffer.
-    pub label: Option<L>,
+    /// An optional debug tag of the buffer.
+    pub tag: Option<L>,
     /// The size of the buffer.
     ///
     /// # Valid usage
@@ -133,11 +133,11 @@ pub struct BufferAttributes<L> {
 }
 impl<L> BufferAttributes<L> {
 
-    /// Maps the label type.
+    /// Maps the tag type.
     #[inline]
-    pub fn map_label<U>(self, f: impl FnOnce(Option<L>) -> Option<U>) -> BufferAttributes<U> {
+    pub fn map_tag<U>(self, f: impl FnOnce(Option<L>) -> Option<U>) -> BufferAttributes<U> {
         BufferAttributes {
-            label: f(self.label),
+            tag: f(self.tag),
             size: self.size,
             usage: self.usage,
             memory_type: self.memory_type,
@@ -148,8 +148,8 @@ impl<L> BufferAttributes<L> {
 /// Parameters of a newly created [`Image`].
 #[derive(Clone, Copy)]
 pub struct ImageAttributes<L, V> {
-    /// The debug label of the image.
-    pub label: Option<L>,
+    /// The debug tag of the image.
+    pub tag: Option<L>,
     /// Specifies the format and type of the texel blocks contained in the image.
     ///
     /// The default value is [`Undefined`][1].
@@ -264,7 +264,7 @@ impl<L, M> Default for ImageAttributes<L, M>
     #[inline]
     fn default() -> Self {
         Self {
-            label: None,
+            tag: None,
             format: Format::Undefined,
             mip_levels: 1,
             array_layers: 1,
@@ -281,11 +281,11 @@ impl<L, M> Default for ImageAttributes<L, M>
 }
 impl<L, M> ImageAttributes<L, M> {
 
-    /// Maps the label type.
+    /// Maps the tag type.
     #[inline]
-    pub fn map_label<U>(self, f: impl FnOnce(Option<L>) -> Option<U>) -> ImageAttributes<U, M> {
+    pub fn map_tag<U>(self, f: impl FnOnce(Option<L>) -> Option<U>) -> ImageAttributes<U, M> {
         ImageAttributes {
-            label: f(self.label),
+            tag: f(self.tag),
             format: self.format,
             mip_levels: self.mip_levels,
             array_layers: self.array_layers,
@@ -300,11 +300,11 @@ impl<L, M> ImageAttributes<L, M> {
         }
     }
 
-    /// Maps the label type.
+    /// Maps the tag type.
     #[inline]
     pub fn map_view_formats<U>(self, f: impl FnOnce(M) -> U) -> ImageAttributes<L, U> {
         ImageAttributes {
-            label: self.label,
+            tag: self.tag,
             format: self.format,
             mip_levels: self.mip_levels,
             array_layers: self.array_layers,
@@ -322,8 +322,8 @@ impl<L, M> ImageAttributes<L, M> {
 /// Parameters of a newly created [`ImageView`].
 #[derive(Clone, Copy)]
 pub struct ImageViewAttributes<L> {
-    /// The debug label of the image view.
-    pub label: Option<L>,
+    /// The debug tag of the image view.
+    pub tag: Option<L>,
     /// Specifies the format of this image view.
     ///
     /// A `None` value specifies the same format as the [`Image`].

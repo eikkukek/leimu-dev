@@ -84,7 +84,7 @@ impl ResourceStateCache {
 /// A command buffer handle.
 pub struct CommandBuffer {
     pub(super) pool: CommandPool,
-    label: Option<CompactStr>,
+    tag: Option<CompactStr>,
     pub(super) signal_sync_scope: vk::PipelineStageFlags2,
     primary: vk::CommandBuffer,
     secondary: vk::CommandBuffer,
@@ -120,7 +120,7 @@ impl CommandBuffer {
         };
         Self {
             pool,
-            label: None,
+            tag: None,
             signal_sync_scope: vk::PipelineStageFlags2::empty(),
             primary,
             secondary,
@@ -134,10 +134,10 @@ impl CommandBuffer {
         }
     }
 
-    /// Assigns a debug label for this command buffer.
+    /// Assigns a debug tag for this command buffer.
     #[inline]
-    pub fn with_label(mut self, label: &str) -> Self {
-        self.label = Some(label.into());
+    pub fn with_tag(mut self, tag: &str) -> Self {
+        self.tag = Some(tag.into());
         self
     }
 
@@ -158,10 +158,10 @@ impl CommandBuffer {
         self.binary_semaphore
     }
 
-    /// Gets the label assigned to this command buffer with [`Self::with_label`].
+    /// Gets the tag assigned to this command buffer with [`Self::with_tag`].
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        self.label.as_deref()
+    pub fn tag(&self) -> Option<&str> {
+        self.tag.as_deref()
     }
 
     /// Gets the [`CommandPool`] which allocated this command buffer.

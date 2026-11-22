@@ -106,3 +106,17 @@ macro_rules! __module_name {
         $crate::macros::module_name(module_path!())
     };
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __variant_some {
+    ($e:ident::$variant:ident = $value:expr) => {
+        {
+            if let $e::$variant(x) = $value {
+                Some(x)
+            } else {
+                None
+            }
+        }
+    };
+}

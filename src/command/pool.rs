@@ -55,7 +55,7 @@ impl Buffers {
 }
 
 struct Inner {
-    label: Option<CompactStr>,
+    tag: Option<CompactStr>,
     device: Device,
     queue: DeviceQueue,
     handle: vk::CommandPool,
@@ -95,11 +95,11 @@ impl CommandPool {
 
     pub(crate) fn new(
         device: Device,
-        label: Option<&str>,
+        tag: Option<&str>,
         queue: DeviceQueue,
     ) -> Result<Self, Error> {
         if device.id() != queue.device_id() {
-            panic!("queue `{}` originates from a different device", queue.label());
+            panic!("queue `{}` originates from a different device", queue.tag());
         }
         let create_info = vk::CommandPoolCreateInfo::default()
             .queue_family_index(queue.family_index())
@@ -110,7 +110,7 @@ impl CommandPool {
         }.describe_err("failed to create `VkCommandPool`")?;
         Ok(Self {
             inner: Inner {
-                label: label.map(Into::into),
+                tag: tag.map(Into::into),
                 device,
                 queue,
                 handle,
@@ -133,10 +133,10 @@ impl CommandPool {
         }
     }
 
-    /// Gets the label assigned to this command pool.
+    /// Gets the tag assigned to this command pool.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        self.inner.label.as_deref()
+    pub fn tag(&self) -> Option<&str> {
+        self.inner.tag.as_deref()
     }
 
     /// Gets the [`Device`] this command pool was created with.

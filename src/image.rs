@@ -218,7 +218,7 @@ impl ImageAttributes<'_> {
             self.mip_levels,
             self.array_layers
         ) * 2 +
-        size_of_val(self.view_formats) + self.label.map(|l| l.len()).unwrap_or_default()
+        size_of_val(self.view_formats) + self.tag.map(|l| l.len()).unwrap_or_default()
     }
 }
 
@@ -266,10 +266,13 @@ struct Inner {
 ///
 /// To create an image, use [`Device::create_image`].
 pub struct Image {
-    label: (Option<NonNull<u8>>, usize),
+    tag: (Option<NonNull<u8>>, usize),
     inner: NonNull<Inner>,
     allocator: AnyAllocator,
 }
+
+unsafe impl Send for Image {}
+unsafe impl Sync for Image {}
 
 impl Image
 {
@@ -279,8 +282,8 @@ impl Image
         attributes: &ImageAttributes<'_>,
         allocator: AnyAllocator,
     ) -> Result<Self, Error> {
-        if let Some(label) = attributes.label {
-            log::info!("validating parameters for `Image` `{label}`");
+        if let Some(tag) = attributes.tag {
+            log::info!("validating parameters for `Image` `{tag}`");
         }
         let limits = device.query_image_creation_limits(
             attributes.format,
@@ -451,8 +454,8 @@ impl Image
         }
         let mut inner = NonNull::dangling();
         let mut view_formats_ptr = NonNull::dangling();
-        let mut label_ptr = None;
-        let mut label_len = 0;
+        let mut tag_ptr = None;
+        let mut tag_len = 0;
         let aspects = attributes.format
             .aspects();
         let states_len =
@@ -461,9 +464,9 @@ impl Image
             attributes.array_layers as usize;
         let mut scoped_states = NonNull::dangling();
         let mut states = NonNull::dangling();
-        let pack_allocation = if let Some(label) = attributes.label {
-            label_len = label.len();
-            let label_ptr = label_ptr.insert(NonNull::dangling());
+        let pack_allocation = if let Some(tag) = attributes.tag {
+            tag_len = tag.len();
+            let tag_ptr = tag_ptr.insert(NonNull::dangling());
             let allocation = pack_alloc(
                 &allocator,
                 [
@@ -471,14 +474,14 @@ impl Image
                     pack_block(&mut scoped_states, states_len).unwrap(),
                     pack_block(&mut states, states_len).unwrap(),
                     pack_block(&mut view_formats_ptr, attributes.view_formats.len()).unwrap(),
-                    pack_block(label_ptr, label.len()).unwrap(),
+                    pack_block(tag_ptr, tag.len()).unwrap(),
                 ]
             ).expect("allocation failed");
             unsafe {
-                label.as_ptr()
+                tag.as_ptr()
                     .copy_to_nonoverlapping(
-                        label_ptr.as_ptr(),
-                        label.len(),
+                        tag_ptr.as_ptr(),
+                        tag.len(),
                     );
             }
             allocation
@@ -550,11 +553,11 @@ impl Image
                 pack_layout: pack_allocation.1,
             });
         }
-        if let Some(label) = attributes.label {
-            log::info!("created `Image` `{label}`")
+        if let Some(tag) = attributes.tag {
+            log::info!("created `Image` `{tag}`")
         }
         Ok(Self {
-            label: (label_ptr, label_len),
+            tag: (tag_ptr, tag_len),
             inner,
             allocator,
         })
@@ -566,15 +569,15 @@ impl Image
         self.inner().id
     }
 
-    /// Gets the label assigned to this image.
+    /// Gets the tag assigned to this image.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        let label_ptr = self.label.0?;
+    pub fn tag(&self) -> Option<&str> {
+        let tag_ptr = self.tag.0?;
         Some(unsafe {
             str::from_utf8_unchecked(
                 slice::from_raw_parts(
-                    label_ptr.as_ptr(),
-                    self.label.1,
+                    tag_ptr.as_ptr(),
+                    self.tag.1,
                 )
             )
         })
@@ -707,11 +710,34 @@ impl Image
             lock.scoped_state.zero_states();
         }
         ImageScoped {
-            image: &self,
+            image: self,
             lock,
             command_buffer,
             signal_semaphore,
         }
+    }
+
+    /// Crates a view of this image.
+    ///
+    /// # Parameters
+    /// - `attributes`: the parameters used to create the view.
+    /// - `allocator`: this is **not** a GPU memory allocator, but a regular allocator implementing
+    ///   [`Allocator`]. It is used for allocating needed data for of the [`ImageView`] structure.
+    ///   If the allocator fails to allocate, this function will panic. The total
+    ///   allocation size can be queried with [`ImageViewAttributes::calculate_allocation_size`].
+    ///
+    /// # Valid usage
+    /// The valid parameters for creating the image are described in [`ImageViewAttributes`].
+    ///
+    /// [`Allocator`]: core::alloc::Allocator
+    #[inline]
+    pub fn create_view(
+        &self,
+        attributes: ImageViewAttributes<'_>,
+        allocator: Option<AnyAllocator>,
+    ) -> Result<ImageView, Error>
+    {
+        ImageView::new(self.clone(), attributes, allocator.unwrap_or_default())
     }
 }
 
@@ -722,11 +748,11 @@ impl Clone for Image
     fn clone(&self) -> Self {
         unsafe {
             self.inner.as_ref().ref_count
-                .add(1, atomic::Ordering::Release);
+                .add(1, atomic::Ordering::AcqRel);
         }
         Self {
             inner: self.inner,
-            label: self.label,
+            tag: self.tag,
             allocator: self.allocator.clone(),
         }
     }
@@ -755,11 +781,11 @@ impl Drop for Image
                         self.inner().semaphore_handle,
                         None
                     );
-                if let Some(label) = self.label() {
-                    log::info!("destroyed `Image` `{label}`")
-                }
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
+                if let Some(tag) = self.tag() {
+                    log::info!("destroyed `Image` `{tag}`")
+                }
                 self.allocator
                     .deallocate(self.inner.cast(), pack_layout);
             }
@@ -841,7 +867,7 @@ impl Image {
             });
         }
         Self {
-            label: (None, 0),
+            tag: (None, 0),
             inner,
             allocator: AnyAllocator::Global,
         }

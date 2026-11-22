@@ -48,7 +48,7 @@ impl PartialEq for SamplerAttributes<'_> {
 
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        eq(&self.label, &other.label) &&
+        eq(&self.tag, &other.tag) &&
         eq(&self.flags, &other.flags) &&
         eq(&self.mag_filter, &other.mag_filter) &&
         eq(&self.min_filter, &other.min_filter) &&
@@ -67,7 +67,7 @@ impl Default for SamplerAttributes<'_> {
 
     fn default() -> Self {
         Self {
-            label: None,
+            tag: None,
             flags: default(),
             mag_filter: default(),
             min_filter: default(),
@@ -96,8 +96,8 @@ impl Drop for Inner {
             .functions()
             .destroy_sampler(self.handle, None);
         }
-        if let Some(label) = &self.attributes.label {
-            log::info!("destroyed `Sampler` `{label}`");
+        if let Some(tag) = &self.attributes.tag {
+            log::info!("destroyed `Sampler` `{tag}`");
         }
     }
 }
@@ -113,10 +113,10 @@ pub struct Sampler {
 
 impl Sampler {
 
-    /// Retrieves the assigned label of this sampler.
+    /// Retrieves the assigned tag of this sampler.
     #[inline]
-    pub fn label(&self) -> Option<&str> {
-        self.attributes().label
+    pub fn tag(&self) -> Option<&str> {
+        self.attributes().tag
             .as_deref()
     }
 
@@ -236,14 +236,14 @@ impl Sampler {
             .functions()
             .create_sampler(&create_info, None)
         }.describe_err("Failed to create `VkSampler`")?;
-        if let Some(label) = attributes.label {
-            log::info!("created `Sampler` `{label}`");
+        if let Some(tag) = attributes.tag {
+            log::info!("created `Sampler` `{tag}`");
         }
         Ok(Self {
             inner: Inner {
                 device,
                 handle,
-                attributes: attributes.map_label(|label| label.map(Into::into)),
+                attributes: attributes.map_tag(|tag| tag.map(Into::into)),
             }.arced(),
         })
     }
