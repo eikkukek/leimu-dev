@@ -410,7 +410,7 @@ impl PipelineLayout {
                 true,
             )},
             |(mut a, b, c, clear)| {
-                // only push_constants
+                // only `ShaderResource` needs drop.
                 if clear {
                     a.clear();
                 }
@@ -452,7 +452,7 @@ impl PipelineLayout {
                     Err(PipelineLayoutError::PushConstantOutOfRange {
                         offset: pc.offset,
                         size: pc.size,
-                        max_size: pc.size,
+                        max_size: max_push_constant_size,
                         stage: shader.shader_stage(),
                     })?
                 }

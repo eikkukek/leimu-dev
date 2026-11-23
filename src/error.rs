@@ -383,7 +383,7 @@ pub(super) mod prelude {
                 },
                 Self::InlineUniformBlockTooBig { resource_name, resolved_size, max_size } => {
                     write!(f,
-                        "the size `{resolved_size}` of `InlineUniformBlock` binding `{resource_name}` is grater than {}",
+                        "the size `{resolved_size}` of `InlineUniformBlock` binding `{resource_name}` is greater than {}",
                         format_args!("the maximum {max_size}"),
                     )
                 },

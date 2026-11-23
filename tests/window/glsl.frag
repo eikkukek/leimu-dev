@@ -6,6 +6,7 @@ layout(set = 0, binding = 1) uniform Buffer {
 
 layout(push_constant) uniform Pc {
     layout(offset = 64) vec4 color;
+    mat4 out_of_range[4];
 } pc;
 
 layout(location = 0) out vec4 out_color;
