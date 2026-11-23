@@ -256,6 +256,6 @@ impl<T> Debug for Sorted<T>
 #[macro_export]
 macro_rules! sorted {
     [$($elem:expr),* $(,)?] => {
-        Sorted::from_iter([$($elem),*])
+        $crate::Sorted::from_iter([$($elem),*])
     }
 }

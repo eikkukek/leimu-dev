@@ -19,121 +19,191 @@ use mem::{
     alloc_vec::FixedVec32,
 };
 
-/// Specifies the type of a [`PipelineLayout`].
-pub enum PipelineLayoutType
+#[derive(Clone)]
+enum PipelineLayoutTypeInner
 {
     /// Specifies a simple compute shader.
     Compute {
-        /// The compute shader.
-        ///
-        /// # Valid usage
-        /// The stage of the shader **must** be [`ShaderStage::Compute`].
         compute: Shader,
     },
     /// Specifies a vertex shading layout.
     Vertex {
-        /// The vertex shader.
-        ///
-        /// # Valid usage
-        /// The stage of the shader **must** be [`ShaderStage::Vertex`].
         vertex: Shader,
-        /// An optional fragment shader.
-        ///
-        /// # Valid usage
-        /// If this is `Some`:
-        /// - the stage of the shader **must** be [`ShaderStage::Fragment`].
         fragment: Option<Shader>,
     },
     /// Specifies a mesh shading layout.
-    ///
-    /// # Valid usage
-    /// The [`vk_ext::mesh_shader`] feature **must** be enabled.
     Mesh {
-        /// An optional task shader.
-        ///
-        /// # Valid usage
-        /// If this is `Some`:
-        /// - the stage of the shader **must** be [`ShaderStage::TaskEXT`], and
-        /// - the [`vk_ext::task_shader`] feature **must** be enabled
         task: Option<Shader>,
-        /// The mesh shader.
-        ///
-        /// # Valid usage
-        /// The stage of the shader **must** be [`ShaderStage::MeshEXT`].
         mesh: Shader,
-        /// An optional fragment shader.
-        ///
-        /// If this is `Some`:
-        /// - the stage of the shader **must** be [`ShaderStage::Fragment`].
         fragment: Option<Shader>,
     }
 }
 
-fn check_shader_stage(shader: &Shader, expected: ShaderStage) -> Result<(), PipelineLayoutError> {
-    if shader.shader_stage() != expected {
-        Err(PipelineLayoutError::MismatchedShaderStage {
-            tag: shader.tag().map(Into::into),
-            expected,
-            found: shader.shader_stage(),
-        })?
-    }
-    Ok(())
+/// Specifies the type of a [`PipelineLayout`].
+#[derive(Clone)]
+pub struct PipelineLayoutType {
+    inner: PipelineLayoutTypeInner,
 }
 
 impl PipelineLayoutType
 {
 
-    /// Returns an iterator over all the shaders.
+    /// Specifies a compute pipeline layout.
     ///
-    /// Returns an error if there's a shader stage mismatch.
+    /// # Valid usage
+    /// - If `compute` is a shader:
+    ///     - it **must** be in the [`Compute`] shader stage.
+    /// - If `compute` is a `(shader_module, name)` tuple:
+    ///     - the [`ShaderModule`] **must** have an entry point with `name`, which is in the
+    ///       [`Compute`] stage.
+    ///
+    /// [`Compute`]: ShaderStage::Compute
     #[inline]
-    pub fn shaders(&self) -> Result<impl Iterator<Item = &'_ Shader>, PipelineLayoutError> {
-        let mut shaders = ArrayVec::<&Shader, 3>::new();
-        match self {
-            Self::Compute { compute } => unsafe {
-                check_shader_stage(&compute, ShaderStage::Compute)?;
-                shaders.push_unchecked(&compute);
-            },
-            Self::Vertex { vertex, fragment } => unsafe {
-                check_shader_stage(vertex, ShaderStage::Vertex)?;
-                shaders.push_unchecked(vertex);
-                if let Some(fragment) = fragment {
-                    check_shader_stage(fragment, ShaderStage::Fragment)?;
-                    shaders.push_unchecked(&fragment);
-                }
-            },
-            Self::Mesh { task, mesh, fragment } => unsafe {
-                if let Some(task) = task {
-                    check_shader_stage(task, ShaderStage::TaskEXT)?;
-                    shaders.push_unchecked(task);
-                }
-                check_shader_stage(mesh, ShaderStage::MeshEXT)?;
-                shaders.push_unchecked(mesh);
-                if let Some(fragment) = fragment {
-                    check_shader_stage(fragment, ShaderStage::Fragment)?;
-                    shaders.push(fragment);
-                }
+    pub fn compute<'a, S>(compute: S) -> Result<Self, ShaderReflectError>
+        where S: Into<ShaderReflectArgs<'a>>
+    {
+        let args: ShaderReflectArgs = compute.into();
+        Ok(Self {
+            inner: PipelineLayoutTypeInner::Compute {
+                compute: args.reflect(ShaderStage::Compute)?,
             }
-        }
-        Ok(shaders.into_iter())
+        })
     }
 
-    /// Returns an iterator over all the shaders without checking the validity of their shader
-    /// stages.
+    /// Specifies a traditional vertex shading pipeline layout.
+    ///
+    /// # Valid usage
+    /// - If `vertex` is a shader:
+    ///     - it **must** be in the [`Vertex`] shader stage.
+    /// - If `vertex` is a `(shader_module, name)` tuple:
+    ///     - the [`ShaderModule`] **must** have an entry point with `name`, which is in the
+    ///       [`Vertex`] stage.
+    /// - If `fragment` is `Some`, and:
+    ///     - if it is a shader:
+    ///         - it **must** be in the [`Fragment`] shader stage, or
+    ///     - if it is a `(shader_module, name)` tuple:
+    ///         - the [`ShaderModule`] **must** have an entry point with `name`, which is in the
+    ///           [`Fragment`] stage.
+    ///
+    /// [`Vertex`]: ShaderStage::Vertex
+    /// [`Fragment`]: ShaderStage::Fragment
     #[inline]
-    pub fn shaders_unchecked(&self) -> impl Iterator<Item = &'_ Shader> {
+    pub fn vertex<'a, S>(
+        vertex: S,
+        fragment: Option<S>,
+    ) -> Result<Self, ShaderReflectError>
+        where S: Into<ShaderReflectArgs<'a>>
+    {
+        let args: ShaderReflectArgs = vertex.into();
+        let vertex = args.reflect(ShaderStage::Vertex)?;
+        let args: Option<ShaderReflectArgs> = fragment
+            .map(Into::into);
+        let fragment = args
+            .into_iter()
+            .try_fold(
+                None,
+                |_, args| {
+                    Ok(Some(args.reflect(ShaderStage::Fragment)?))
+                }
+            )?;
+        Ok(Self {
+            inner: PipelineLayoutTypeInner::Vertex {
+                vertex,
+                fragment,
+            }
+        })
+    }
+
+    /// Specifies a mesh shading pipeline layout.
+    ///
+    /// # Valid usage
+    /// - The [`vk_ext::mesh_shader`] feature **must** be enabled.
+    /// - If `task` is `Some`:
+    ///     - the [`vk_ext::task_shader`] feature **must** be enabled, and
+    ///     - if it is a shader:
+    ///         - it **must** be in the [`TaskEXT`] shader stage, or
+    ///     - if it is a `(shader_module, name)` tuple:
+    ///         - the [`ShaderModule`] **must** have an entry point with `name`, which is in the
+    ///           [`TaskEXT`] stage.
+    /// - If `mesh` is a shader:
+    ///     - it **must** be in the [`MeshEXT`] shader stage.
+    /// - If `mesh` is a `(shader_module, name)` tuple:
+    ///     - the [`ShaderModule`] **must** have an entry point with `name`, which is in the
+    ///       [`MeshEXT`] stage.
+    /// - If `fragment` is `Some`, and:
+    ///     - if it is a shader:
+    ///         - it **must** be in the [`Fragment`] shader stage, or
+    ///     - if it is a `(shader_module, name)` tuple:
+    ///         - the [`ShaderModule`] **must** have an entry point with `name`, which is in the
+    ///           [`Fragment`] stage.
+    ///
+    /// [`TaskEXT`]: ShaderStage::TaskEXT
+    /// [`MeshEXT`]: ShaderStage::MeshEXT
+    /// [`Fragment`]: ShaderStage::Fragment
+    #[inline]
+    pub fn mesh<'a, S>(
+        task: Option<S>,
+        mesh: S,
+        fragment: Option<S>
+    ) -> Result<Self, ShaderReflectError>
+        where S: Into<ShaderReflectArgs<'a>>
+    {
+        let args: Option<ShaderReflectArgs> = task
+            .map(Into::into);
+        let task = args
+            .into_iter()
+            .try_fold(
+                None,
+                |_, args| {
+                    let task = args.reflect(ShaderStage::TaskEXT)?;
+                    if !task.module()
+                        .device()
+                        .is_feature_enabled(vk_ext::task_shader::NAME)
+                    {
+                        Err(ShaderReflectError::TaskShaderNotEnabled)?
+                    }
+                    Ok(Some(task))
+                }
+            )?;
+        let args: ShaderReflectArgs = mesh.into();
+        let mesh = args.reflect(ShaderStage::MeshEXT)?;
+        if !mesh
+            .module()
+            .device()
+            .is_feature_enabled(vk_ext::mesh_shader::NAME)
+        {
+            Err(ShaderReflectError::MeshShaderNotEnabled)?
+        }
+        let args: Option<ShaderReflectArgs> = fragment
+            .map(Into::into);
+        let fragment = args
+            .into_iter()
+            .try_fold(
+                None,
+                |_, args| {
+                    Ok(Some(args.reflect(ShaderStage::Fragment)?))
+                }
+            )?;
+        Ok(Self {
+            inner: PipelineLayoutTypeInner::Mesh { task, mesh, fragment },
+        })
+    }
+
+    /// Returns an iterator over all the shaders.
+    #[inline]
+    pub fn shaders(&self) -> impl Iterator<Item = &'_ Shader> {
         let mut shaders = ArrayVec::<&Shader, 3>::new();
-        match self {
-            Self::Compute { compute } => unsafe {
+        match &self.inner {
+            PipelineLayoutTypeInner::Compute { compute } => unsafe {
                 shaders.push_unchecked(compute);
             },
-            Self::Vertex { vertex, fragment } => unsafe {
+            PipelineLayoutTypeInner::Vertex { vertex, fragment } => unsafe {
                 shaders.push_unchecked(vertex);
                 if let Some(fragment) = fragment {
                     shaders.push_unchecked(fragment);
                 }
             },
-            Self::Mesh { task, mesh, fragment } => unsafe {
+            PipelineLayoutTypeInner::Mesh { task, mesh, fragment } => unsafe {
                 if let Some(task) = task {
                     shaders.push_unchecked(task);
                 }
@@ -221,7 +291,7 @@ impl PipelineLayoutAttributes<'_> {
         let mut pc_count = 0;
         let mut set_count = 0;
         for s in self.ty
-            .shaders_unchecked()
+            .shaders()
         {
             resource_count += s.resources().len();
             s.resources()
@@ -244,6 +314,7 @@ impl PipelineLayoutAttributes<'_> {
 struct Inner {
     device: Device,
     ref_count: AtomicU64,
+    ty: PipelineLayoutType,
     handle: Mutex<vk::PipelineLayout>,
     resources: NonNull<[ShaderResource]>,
     push_constants: NonNull<[PushConstantRange]>,
@@ -256,6 +327,7 @@ struct Inner {
 /// This is used for creating pipelines and allocating shader resources.
 ///
 /// [shaders]: Shader
+#[must_use]
 pub struct PipelineLayout {
     inner: NonNull<Inner>,
     tag: Option<NonNull<[u8]>>,
@@ -336,10 +408,10 @@ impl PipelineLayout {
         tmp_allocator: &(impl Allocator + ?Sized),
     ) -> Result<Self, PipelineLayoutError> {
         if let Some(tag) = attributes.tag {
-            log::info!("validation `PipelineLayout` `{tag}`");
+            log::info!("validating `PipelineLayout` `{tag}`");
         }
         let shaders: ArrayVec<&Shader, 3> = attributes.ty
-            .shaders()?
+            .shaders()
             .collect();
         let mut resource_count = 0;
         let mut push_constant_count = 0;
@@ -426,7 +498,10 @@ impl PipelineLayout {
             ShaderStage::TaskEXT,
             ShaderStage::MeshEXT,
         ];
-        let mut descriptor_counts = [[0u32; ShaderStage::VARIANT_COUNT]; DescriptorType::VARIANT_COUNT];
+        let mut descriptor_counts = [
+            [0u32; ShaderStage::VARIANT_COUNT];
+            DescriptorType::VARIANT_COUNT
+        ];
         let mut total_inline_uniform_block_size = 0u32;
         let max_push_constant_size = device
             .gpu_info()
@@ -778,10 +853,12 @@ impl PipelineLayout {
         vecs.3 = false;
         let pack_layout = DropGuard::dismiss(alloc_guard).1;
         DropGuard::dismiss(set_guard);
+        drop(shaders);
         unsafe {
             inner.write(Inner {
                 device,
                 ref_count: AtomicU64::new(1),
+                ty: attributes.ty,
                 handle: Mutex::new(handle),
                 resources: NonNull::slice_from_raw_parts(
                     resources,
@@ -828,6 +905,14 @@ impl PipelineLayout {
     pub fn device(&self) -> &Device {
         unsafe {
             &self.inner().device
+        }
+    }
+
+    /// The type of this pipeline layout as specified in [`PipelineLayoutAttributes::ty`].
+    #[inline]
+    pub fn ty(&self) -> &PipelineLayoutType {
+        unsafe {
+            &self.inner().ty
         }
     }
    

@@ -36,7 +36,6 @@ mod swapchain;
 mod shader;
 mod queries;
 mod statics;
-mod include_words;
 
 pub(crate) mod macros;
 
@@ -81,7 +80,9 @@ pub(crate) type IndexMap<K, V> = indexmap::IndexMap<K, V, ahash::RandomState>;
 pub(crate) type IndexSet<T> = indexmap::IndexSet<T, ahash::RandomState>;
 pub(crate) use statics::*;
 pub(crate) use macros::*;
-pub use include_words::*;
+pub use spirv::include_spirv;
+/// A scalar type in a shader.
+pub type ScalarType = spirv::reflect::ScalarType;
 
 pub(crate) trait Arced: Sized {
 
@@ -177,9 +178,11 @@ pub(crate) fn default<T: Default>() -> T {
 ///
 /// # Example
 /// ``` rust
+/// # fn main() {
 /// use leimu::vec_wrap;
 /// use leimu::pipeline_state::ColorBlendEnable;
-/// let state: ColorBlendEnable = vec_wrap[true, false, true, true];
+/// let state: ColorBlendEnable = vec_wrap![true, false, true, true];
+/// # }
 /// ```
 #[macro_export]
 macro_rules! vec_wrap {

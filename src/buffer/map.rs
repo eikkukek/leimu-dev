@@ -44,7 +44,7 @@ pub enum MapMode {
 /// use leimu::WriteOnly;
 ///
 /// let mut array = [0; 3];
-/// let mut writeonly = WriteOnly::from_mut(&mut array);
+/// let mut writeonly = WriteOnly::from_mut(array.as_mut_slice());
 /// writeonly.copy_from_slice(&[1, 2, 3]);
 /// assert_eq!(array, [1, 2, 3]);
 /// ```

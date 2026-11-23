@@ -130,6 +130,17 @@ pub(super) mod prelude {
         }
     }
 
+    macro_rules! impl_into_error {
+        ($t:ident, $desc:literal $(,)?) => {
+            impl From<$t> for Error {
+                #[inline]
+                fn from(value: $t) -> Self {
+                    Self::new(Some(value), $desc)
+                }
+            }
+        };
+    }
+
     /// An extension trait for [`Result`] that contains a single method [`describe_err`][1].
     ///
     /// `describe_err` takes in any type that implements [`Into<Description>`] and maps the [`Err`] of
@@ -167,6 +178,8 @@ pub(super) mod prelude {
         /// If this happens, the program **must** be terminated.
         InternalError(Error),
     }
+
+    impl_into_error!(FormatQueryError, "failed to query image creation limits");
 
     impl Display for FormatQueryError {
 
@@ -218,6 +231,7 @@ pub(super) mod prelude {
             Self::ValidationError(value)
         }
     }
+    impl_into_error!(ShaderValidationError, "shader validation failed");
     impl Display for ShaderValidationError {
 
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -250,10 +264,26 @@ pub(super) mod prelude {
         NoDescriptorBinding(CompactStr),
         /// Indicates that the shader has more than one push constant.
         TooManyPushConstants,
+        /// Indicates that a shader has a different shader stage from what was expected.
+        MismatchedShaderStage {
+            /// The expected shader stage.
+            expected: ShaderStage,
+            /// The shader stage of the shader.
+            found: ShaderStage,
+        },
+        /// Indicates that the [`TaskEXT`] shader stage was used, but the [`vk_ext::task_shader`]
+        /// feature is not enabled.
+        ///
+        /// [`TaskEXT`]: ShaderStage::TaskEXT
+        TaskShaderNotEnabled,
+        /// Indicates that the [`MeshEXT`] shader stage was used, but the [`vk_ext::mesh_shader`]
+        /// feature is not enabled.
+        ///
+        /// [`MeshEXT`]: ShaderStage::MeshEXT
+        MeshShaderNotEnabled,
     }
-
+    impl_into_error!(ShaderReflectError, "shader reflection failed");
     impl Display for ShaderReflectError {
-
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
                 Self::EntryPointNotFound(stage, name) => {
@@ -271,6 +301,15 @@ pub(super) mod prelude {
                 Self::TooManyPushConstants => {
                     write!(f, "more than one push constant range specified for shader")
                 },
+                Self::MismatchedShaderStage { expected, found } => {
+                    write!(f, "mismatched shader stage: expected {expected:?}, found {found:?}")
+                },
+                Self::TaskShaderNotEnabled => {
+                    write!(f, "task shaders are used, but the `vk_ext::task_shader` feature is not enabled")
+                },
+                Self::MeshShaderNotEnabled => {
+                    write!(f, "mesh shaders are used, but the `vk_ext::mesh_shader` feature is not enabled")
+                },
             }
         }
     }
@@ -284,11 +323,6 @@ pub(super) mod prelude {
     #[derive(Debug)]
     pub enum PipelineLayoutError {
         Internal(Error),
-        MismatchedShaderStage {
-            tag: Option<String>,
-            expected: ShaderStage,
-            found: ShaderStage,
-        },
         DuplicateSetBinding {
             set: u32,
             binding: u32,
@@ -353,19 +387,11 @@ pub(super) mod prelude {
             descriptor_type: DescriptorType,
         },
     }
-
+    impl_into_error!(PipelineLayoutError, "failed to create pipeline layout");
     impl Display for PipelineLayoutError {
-
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
                 Self::Internal(_) => write!(f, "internal error occurred"),
-                Self::MismatchedShaderStage { tag, expected, found } => {
-                    if let Some(tag) = tag {
-                        write!(f, "expected `Shader` `{tag}` to have the {expected:?} shader stage, but it has {found:?}")
-                    } else {
-                        write!(f, "expected `Shader` to have the {expected:?} shader stage, but it has {found:?}")
-                    }
-                },
                 Self::DuplicateSetBinding { set, binding } => {
                     write!(f, "duplicate `set/binding` pair `({set}, {binding})`")
                 },

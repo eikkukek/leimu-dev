@@ -43,11 +43,9 @@ use features::FeatureData;
 /// use leimu::{Features, vk_core};
 ///
 /// let features = Features::from_iter([
-///     vk_core::push_descriptor::new(),
-///     vk_core::shader_zero_initialize_workgroup_memory::new(),
-///     vk_core::extended_dynamic_state2::builder()
-///         .extended_dynamic_state2(true)
-///         .build()
+///     vk_core::push_descriptor::require(),
+///     vk_core::shader_zero_initialize_workgroup_memory::require(),
+///     vk_core::extended_dynamic_state2::require()
 /// ]);
 /// ```
 pub struct Features {

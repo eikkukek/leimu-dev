@@ -1,7 +1,11 @@
-use core::ffi::CStr;
+use core::{
+    ffi::CStr,
+    borrow::Borrow,
+};
 use tuhka::vk;
 
 use crate::*;
+
 use sync::Arc;
 use spirv::{op, reflect::{self, ResourceType}};
 use mem::{vec32, alloc_vec::Vec32};
@@ -91,6 +95,7 @@ struct Inner {
     shader_stage: ShaderStage,
     name: CompactCStr,
     resources: Vec32<ShaderResource>,
+    spec_constants: Vec<(u32, ScalarType)>,
     push_constant_range: Option<PushConstantRange>,
 }
 
@@ -196,6 +201,15 @@ impl Shader {
         if push_constant_ranges.len() > 1 {
             Err(ShaderReflectError::TooManyPushConstants)?
         }
+        let spec_constants = reflector
+            .spec_constants()
+            .filter_map(Result::ok)
+            .map(|spec_constant| {
+                (
+                    spec_constant.spec_id,
+                    spec_constant.ty,
+                )
+            }).collect();
         let mut name_bytes = name.as_bytes().to_owned();
         name_bytes.push(0);
         if let Some(tag) = tag {
@@ -204,6 +218,7 @@ impl Shader {
         Ok(Self {
             inner: Inner {
                 module,
+                spec_constants,
                 tag: tag.map(CompactStr::new),
                 shader_stage,
                 name: CompactCStr::new(::core::ffi::CStr
@@ -252,5 +267,83 @@ impl Shader {
     #[inline]
     pub fn push_constant_range(&self) -> Option<&PushConstantRange> {
         self.inner.push_constant_range.as_ref()
+    }
+
+    /// Returns a slice over the `SpecId`s and types of all specialization constants in this shader.
+    #[inline]
+    pub fn spec_constants(&self) -> &[(u32, ScalarType)] {
+        &self.inner.spec_constants
+    }
+}
+
+enum ReflectArgsInner<'a> {
+    Shader(Shader),
+    ModuleAndName(ShaderModule, &'a str)
+}
+/// Opaque structure containing arguments used for shader reflection.
+///
+/// This utilized in [`PipelineLayoutType`] where you can pass either a [`Shader`] or a
+/// `(ShaderModule, entry_point_name)` tuple as arguments for creating the type.
+///
+/// # Examples
+/// ``` rust
+/// # use leimu::{ShaderModule, ShaderReflectArgs, ShaderStage};
+/// # let shader_module: ShaderModule = {
+/// #   return;
+/// # };
+/// let args: ShaderReflectArgs = (shader_module, "main").into();
+/// let shader = args
+///     .reflect(ShaderStage::Compute)
+///     .expect("reflection failed");
+/// let args: ShaderReflectArgs = shader.into();
+/// args.reflect(ShaderStage::Fragment)
+///     .map(|_| {})
+///     .expect_err("stage should be `Compute`");
+/// ```
+pub struct ShaderReflectArgs<'a> {
+    inner: ReflectArgsInner<'a>,
+}
+impl ShaderReflectArgs<'_> {
+
+    /// Tries to reflect these arguments in `shader_stage`.
+    #[inline]
+    pub fn reflect(self, shader_stage: ShaderStage) -> Result<Shader, ShaderReflectError> {
+        match self.inner {
+            ReflectArgsInner::Shader(shader) => {
+                if shader.shader_stage() != shader_stage {
+                    Err(ShaderReflectError::MismatchedShaderStage {
+                        expected: shader_stage,
+                        found: shader.shader_stage(),
+                    })?
+                }
+                Ok(shader)
+            },
+            ReflectArgsInner::ModuleAndName(module, name) => {
+                Shader::new(module, None, shader_stage, name)
+            },
+        }
+    }
+}
+impl From<Shader> for ShaderReflectArgs<'_> {
+    #[inline]
+    fn from(value: Shader) -> Self {
+        Self {
+            inner: ReflectArgsInner::Shader(value),
+        }
+    }
+}
+impl<'a, M, S> From<(M, &'a S)> for ShaderReflectArgs<'a>
+    where
+        M: Borrow<ShaderModule>,
+        S: AsRef<str> + ?Sized
+{
+    #[inline]
+    fn from(value: (M, &'a S)) -> Self {
+        Self {
+            inner: ReflectArgsInner::ModuleAndName(
+                value.0.borrow().clone(),
+                value.1.as_ref(),
+            ),
+        }
     }
 }

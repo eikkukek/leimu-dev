@@ -2,7 +2,7 @@ use leimu::{
     DescribeResult,
     mem::arena::Arena,
     raw_window_handle::HasDisplayHandle,
-    include_words,
+    include_spirv,
 };
 
 use cwinit::{run_app, Event, winit};
@@ -45,54 +45,42 @@ fn main() -> Result<(), leimu::Error> {
             }],
             [],
         )?;
-        let compute_shader = device.create_shader_module(
+        let compute_module = device.create_shader_module(
             leimu::ShaderModuleAttributes {
                 tag: Some("compute shader"),
-                spirv: include_words!("../comp.spv"),
+                spirv: include_spirv!("../comp.spv"),
             },
             None,
-        ).describe_err("failed to validate shader")?
-        .in_entry_point(
-            Some("compute shader"),
-            leimu::ShaderStage::Compute,
-            "main",
-        ).describe_err("failed to validate compute shader")?;
-        device.create_pipeline_layout(
+        )?;
+        let _ = device.create_pipeline_layout(
             leimu::PipelineLayoutAttributes {
                 tag: Some("compute layout"),
-                ty: leimu::PipelineLayoutType::Compute { compute: compute_shader },
+                ty: leimu::PipelineLayoutType
+                    ::compute((compute_module, "main"))?,
                 set_attributes: &[],
                 binding_attributes: &[],
             },
             None,
         ).describe_err("failed to create pipeline layout")?;
-        let graphics_layout = device.create_pipeline_layout(
+        let _ = device.create_pipeline_layout(
             leimu::PipelineLayoutAttributes {
                 tag: Some("graphics layout"),
-                ty: leimu::PipelineLayoutType::Vertex {
-                    vertex: device.create_shader_module(
+                ty: leimu::PipelineLayoutType::vertex(
+                    (device.create_shader_module(
                         leimu::ShaderModuleAttributes {
                             tag: None,
-                            spirv: include_words!("../vert.spv"),
+                            spirv: include_spirv!("../vert.spv"),
                         },
                         None
-                    ).describe_err("failed to create vertex shader")?.in_entry_point(
-                        None,
-                        leimu::ShaderStage::Vertex,
-                        "main",
-                    ).describe_err("failed to validate vertex shader")?,
-                    fragment: Some(device.create_shader_module(
+                    )?, "main"),
+                    Some((device.create_shader_module(
                         leimu::ShaderModuleAttributes {
                             tag: None,
-                            spirv: include_words!("../frag.spv"),
+                            spirv: include_spirv!("../frag.spv")
                         },
                         None
-                    ).describe_err("failed to create fragment shader")?.in_entry_point(
-                        None,
-                        leimu::ShaderStage::Fragment,
-                        "main",
-                    ).describe_err("failed to vlidate fragment shader")?),
-                },
+                    )?, "main"))
+                )?,
                 set_attributes: &[],
                 binding_attributes: &[]
             },
