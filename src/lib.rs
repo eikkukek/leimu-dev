@@ -36,6 +36,7 @@ mod swapchain;
 mod shader;
 mod queries;
 mod statics;
+mod include_words;
 
 pub(crate) mod macros;
 
@@ -79,6 +80,8 @@ pub(crate) use ahash::AHashSet as HashSet;
 pub(crate) type IndexMap<K, V> = indexmap::IndexMap<K, V, ahash::RandomState>;
 pub(crate) type IndexSet<T> = indexmap::IndexSet<T, ahash::RandomState>;
 pub(crate) use statics::*;
+pub(crate) use macros::*;
+pub use include_words::*;
 
 pub(crate) trait Arced: Sized {
 

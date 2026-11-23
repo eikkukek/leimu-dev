@@ -1,8 +1,6 @@
 /// Implements [`Display`][1] for [`bitflags`].
 ///
 /// [1]: ::core::fmt::Display
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __bitflags_display {
     ($name:ident) => {
         impl ::core::fmt::Display for $name {
@@ -30,9 +28,8 @@ macro_rules! __bitflags_display {
         }       
     };
 }
+pub(super) use __bitflags_display;
 
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __impl_slice_eq {
     (
         [$($vars:tt)*]
@@ -51,9 +48,8 @@ macro_rules! __impl_slice_eq {
         }
     };
 }
+pub(super) use __impl_slice_eq;
 
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __id {
     (
         $(#[$outer:meta])*
@@ -75,10 +71,10 @@ macro_rules! __id {
         }
     };
 }
+pub(super) use __id;
 
-#[doc(hidden)]
 #[inline]
-pub const fn module_name(module_path: &'static str) -> &'static str {
+pub(crate) const fn module_name(module_path: &'static str) -> &'static str {
     let bytes = module_path.as_bytes();
     let mut i = bytes.len() - 1;
     while i != 0 {
@@ -99,7 +95,6 @@ pub const fn module_name(module_path: &'static str) -> &'static str {
     module_path
 }
 
-#[doc(hidden)]
 #[macro_export]
 macro_rules! __module_name {
     () => {
@@ -107,8 +102,6 @@ macro_rules! __module_name {
     };
 }
 
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __variant_some {
     ($e_first:ident $(::$e:ident)* = $value:expr) => {
         {
@@ -120,3 +113,4 @@ macro_rules! __variant_some {
         }
     };
 }
+pub(super) use __variant_some;

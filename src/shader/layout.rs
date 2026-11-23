@@ -1,7 +1,6 @@
 use core::{
     str,
     ptr::NonNull,
-    borrow::Borrow,
     mem::{DropGuard, forget},
     num::NonZeroU32,
     alloc,
@@ -21,8 +20,7 @@ use mem::{
 };
 
 /// Specifies the type of a [`PipelineLayout`].
-pub enum PipelineLayoutType<T>
-    where T: Borrow<Shader>
+pub enum PipelineLayoutType
 {
     /// Specifies a simple compute shader.
     Compute {
@@ -30,7 +28,7 @@ pub enum PipelineLayoutType<T>
         ///
         /// # Valid usage
         /// The stage of the shader **must** be [`ShaderStage::Compute`].
-        compute: T,
+        compute: Shader,
     },
     /// Specifies a vertex shading layout.
     Vertex {
@@ -38,13 +36,13 @@ pub enum PipelineLayoutType<T>
         ///
         /// # Valid usage
         /// The stage of the shader **must** be [`ShaderStage::Vertex`].
-        vertex: T,
+        vertex: Shader,
         /// An optional fragment shader.
         ///
         /// # Valid usage
         /// If this is `Some`:
         /// - the stage of the shader **must** be [`ShaderStage::Fragment`].
-        fragment: Option<T>,
+        fragment: Option<Shader>,
     },
     /// Specifies a mesh shading layout.
     ///
@@ -57,17 +55,17 @@ pub enum PipelineLayoutType<T>
         /// If this is `Some`:
         /// - the stage of the shader **must** be [`ShaderStage::TaskEXT`], and
         /// - the [`vk_ext::task_shader`] feature **must** be enabled
-        task: Option<T>,
+        task: Option<Shader>,
         /// The mesh shader.
         ///
         /// # Valid usage
         /// The stage of the shader **must** be [`ShaderStage::MeshEXT`].
-        mesh: T,
+        mesh: Shader,
         /// An optional fragment shader.
         ///
         /// If this is `Some`:
         /// - the stage of the shader **must** be [`ShaderStage::Fragment`].
-        fragment: Option<T>,
+        fragment: Option<Shader>,
     }
 }
 
@@ -82,35 +80,9 @@ fn check_shader_stage(shader: &Shader, expected: ShaderStage) -> Result<(), Pipe
     Ok(())
 }
 
-impl<T> PipelineLayoutType<T>
-    where T: Borrow<Shader>
+impl PipelineLayoutType
 {
 
-    /// Maps `T` to `U`.
-    #[inline]
-    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> PipelineLayoutType<U>
-        where U: Borrow<Shader>,
-    {
-        match self {
-            Self::Compute { compute } => {
-                PipelineLayoutType::Compute { compute: f(compute) }
-            },
-            Self::Vertex { vertex, fragment } => {
-                PipelineLayoutType::Vertex {
-                    vertex: f(vertex),
-                    fragment: fragment.map(&mut f),
-                }
-            },
-            Self::Mesh { task, mesh, fragment } => {
-                PipelineLayoutType::Mesh {
-                    task: task.map(&mut f),
-                    mesh: f(mesh),
-                    fragment: fragment.map(&mut f),
-                }
-            },
-        }
-    }
-   
     /// Returns an iterator over all the shaders.
     ///
     /// Returns an error if there's a shader stage mismatch.
@@ -119,31 +91,25 @@ impl<T> PipelineLayoutType<T>
         let mut shaders = ArrayVec::<&Shader, 3>::new();
         match self {
             Self::Compute { compute } => unsafe {
-                let compute = compute.borrow();
-                check_shader_stage(compute, ShaderStage::Compute)?;
-                shaders.push_unchecked(compute);
+                check_shader_stage(&compute, ShaderStage::Compute)?;
+                shaders.push_unchecked(&compute);
             },
             Self::Vertex { vertex, fragment } => unsafe {
-                let vertex = vertex.borrow();
                 check_shader_stage(vertex, ShaderStage::Vertex)?;
                 shaders.push_unchecked(vertex);
                 if let Some(fragment) = fragment {
-                    let fragment = fragment.borrow();
                     check_shader_stage(fragment, ShaderStage::Fragment)?;
-                    shaders.push_unchecked(fragment);
+                    shaders.push_unchecked(&fragment);
                 }
             },
             Self::Mesh { task, mesh, fragment } => unsafe {
                 if let Some(task) = task {
-                    let task = task.borrow();
                     check_shader_stage(task, ShaderStage::TaskEXT)?;
                     shaders.push_unchecked(task);
                 }
-                let mesh = mesh.borrow();
                 check_shader_stage(mesh, ShaderStage::MeshEXT)?;
                 shaders.push_unchecked(mesh);
                 if let Some(fragment) = fragment {
-                    let fragment = fragment.borrow();
                     check_shader_stage(fragment, ShaderStage::Fragment)?;
                     shaders.push(fragment);
                 }
@@ -159,26 +125,20 @@ impl<T> PipelineLayoutType<T>
         let mut shaders = ArrayVec::<&Shader, 3>::new();
         match self {
             Self::Compute { compute } => unsafe {
-                let compute = compute.borrow();
                 shaders.push_unchecked(compute);
             },
             Self::Vertex { vertex, fragment } => unsafe {
-                let vertex = vertex.borrow();
                 shaders.push_unchecked(vertex);
                 if let Some(fragment) = fragment {
-                    let fragment = fragment.borrow();
                     shaders.push_unchecked(fragment);
                 }
             },
             Self::Mesh { task, mesh, fragment } => unsafe {
                 if let Some(task) = task {
-                    let task = task.borrow();
                     shaders.push_unchecked(task);
                 }
-                let mesh = mesh.borrow();
                 shaders.push_unchecked(mesh);
                 if let Some(fragment) = fragment {
-                    let fragment = fragment.borrow();
                     shaders.push(fragment);
                 }
             }
@@ -246,9 +206,10 @@ pub struct PipelineLayoutAttributes<'a> {
     ///
     /// [`set`]: Uniform::set
     /// [`binding`]: Uniform::binding
-    pub ty: PipelineLayoutType<&'a Shader>,
+    pub ty: PipelineLayoutType,
+    /// Specifies additional attributes for specific sets.
     pub set_attributes: &'a [PipelineLayoutSetAttributes],
-    /// Specifies additional attributes for specific `set`/`binding` pairs.
+    /// Specifies additional attributes for specific `set/binding` pairs.
     pub binding_attributes: &'a [PipelineLayoutBindingAttributes<'a>],
 }
 

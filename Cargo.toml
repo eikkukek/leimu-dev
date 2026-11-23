@@ -8,7 +8,7 @@ log = "0.4.35"
 static_assertions = "1.1.0"
 
 tuhka = { version = "0.1.14", features = ["window", "bytemuck"] }
-leimu-spirv = "0.5.6"
+leimu-spirv = "0.5.7"
 spirv-tools = { version = "0.13.0", default-features = false }
 
 raw-window-handle = "0.6.2"
