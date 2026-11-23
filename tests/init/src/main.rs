@@ -154,8 +154,7 @@ fn main() -> Result<(), leimu::Error> {
         },
         Some(leimu::any_allocator(arena)),
     )?;
-    let cube_view = device.create_image_view(
-        cube_image,
+    let _cube_view = cube_image.create_view(
         leimu::ImageViewAttributes {
             tag: Some("cube view"),
             format: None,
@@ -180,8 +179,7 @@ fn main() -> Result<(), leimu::Error> {
         },
         None,
     )?;
-    let view_3d_slice = device.create_image_view(
-        image_3d.clone(),
+    let view_3d_slice = image_3d.create_view(
         leimu::ImageViewAttributes {
             tag: Some("2d array of 3d"),
             format: Some(leimu::Format::R8g8b8a8_Srgb),
@@ -193,8 +191,7 @@ fn main() -> Result<(), leimu::Error> {
         },
         None,
     )?;
-    let view_3d_value = device.create_image_view(
-        image_3d.clone(),
+    let view_3d_value = image_3d.create_view(
         leimu::ImageViewAttributes {
             tag: Some("2d slice of 3d"),
             format: Some(leimu::Format::R8g8b8a8_Srgb),
