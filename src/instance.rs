@@ -10,7 +10,7 @@ use tuhka::{self, vk, window};
 
 use crate::*;
 
-use sync::Arc;
+use sync::{Arc, Mutex};
 
 use mem::{
     alloc_vec::Vec32,
@@ -31,12 +31,29 @@ impl OnlyEqDisplayHandle {
     }
 }
 
+#[inline]
+fn create_allocator() -> Option<Mutex<Box<vk_callbacks::Alloc>>> {
+    std::env
+        ::vars()
+        .any(|(var, value)| {
+            var == "LEIMU_USE_ALLOCATOR" &&
+            value == "1"
+        }).then(|| {
+            log::info!("using custom allocator for Vulkan commands");
+            Mutex::new(Box::new(vk_callbacks::Alloc::new(
+                1_000_000,
+                64
+            ).unwrap()))
+        })
+}
+
 struct Inner {
     id: InstanceId,
     functions: tuhka::Instance,
     library: tuhka::Library,
     display_handle: Option<OnlyEqDisplayHandle>,
     surface_functions: Option<tuhka::khr::surface::Instance>,
+    allocator: Option<Mutex<Box<vk_callbacks::Alloc>>>,
 }
 
 impl Drop for Inner {
@@ -45,10 +62,16 @@ impl Drop for Inner {
         unsafe {
             self.library.destroy_instance(
                 &self.functions,
-                None,
+                self.allocator
+                    .as_mut()
+                    .map(|alloc|&mut **alloc.get_mut()).map(vk_callbacks::make_callbacks)
+                    .as_ref()
             );
         } 
         log::info!("destroyed `Instance`");
+        if let Some(a) = &mut self.allocator {
+            a.get_mut().log_stats();
+        }
     }
 }
 
@@ -80,6 +103,7 @@ impl Instance {
         let library = unsafe {
             tuhka::Library::load()
         }.expect("Vulkan is not installed on this system");
+        let mut allocator = create_allocator();
         let mut found_layers = vec32![];
         let enable_layers = get_layers(&library, &mut found_layers)?;
         let enable_extensions = get_extensions_in_disp(&library, display_handle)?;
@@ -96,7 +120,14 @@ impl Instance {
                 enable_layers.len() as usize,
             )}).p_enabled_extension_names(&enable_extensions);
         let functions = unsafe {
-            library.create_instance(&create_info, None)
+            library.create_instance(
+                &create_info,
+                allocator
+                    .as_mut()
+                    .map(|m| &mut **m.get_mut())
+                    .map(vk_callbacks::make_callbacks)
+                    .as_ref()
+            )
         }.describe_err("failed to create Vulkan instance")?;
         log::info!("created `Instance` in display");
         Ok(Self { inner: Inner {
@@ -105,12 +136,14 @@ impl Instance {
             functions,
             library,
             display_handle: Some(OnlyEqDisplayHandle(display_handle)),
+            allocator,
         }.arced()})
     }
 
     /// Creates a new instance in standalone mode without a windowing system.
     pub fn new_standalone() -> Result<Self, Error>
     {
+        let mut allocator = create_allocator();
         let library = unsafe {
             tuhka::Library::load()
         }.expect("Vulkan is not installed on this system");
@@ -130,7 +163,14 @@ impl Instance {
                 enable_layers.len() as usize,
             )}).p_enabled_extension_names(&enable_extensions);
         let functions = unsafe {
-            library.create_instance(&create_info, None)
+            library.create_instance(
+                &create_info,
+                allocator
+                    .as_mut()
+                    .map(|m| &mut **m.get_mut())
+                    .map(vk_callbacks::make_callbacks)
+                    .as_ref()
+            )
         }.describe_err("failed to create Vulkan instance")?;
         log::info!("created `Instance`");
         Ok(Self { inner: Inner {
@@ -139,6 +179,7 @@ impl Instance {
             library,
             display_handle: None,
             surface_functions: None,
+            allocator,
         }.arced()})
     }
 
@@ -235,6 +276,21 @@ impl Instance {
             ))?
         }
         Ok(SuitableGpus { attributes, gpus: suitable, })
+    }
+
+    #[inline]
+    pub(crate) fn use_allocation_callbacks<T>(
+        &self,
+        f: impl FnOnce(Option<&vk::AllocationCallbacks<'_>>) -> T,
+    ) -> T {
+        let mut alloc = self.inner
+            .allocator
+            .as_ref()
+            .map(|a| a.lock());
+        let callbacks = alloc
+            .as_mut()
+            .map(|a| vk_callbacks::make_callbacks(a));
+        f(callbacks.as_ref())
     }
 }
 

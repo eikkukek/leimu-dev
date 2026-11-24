@@ -109,15 +109,15 @@ impl CommandBuffer {
         let mut semaphore_type = vk::SemaphoreTypeCreateInfo
             ::default()
             .semaphore_type(vk::SemaphoreType::TIMELINE);
-        let semaphore_handle = unsafe {
+        let semaphore_handle = pool.device().use_allocation_callbacks(|cb| unsafe {
             pool.device()
                 .functions()
                 .create_semaphore(
                     &vk::SemaphoreCreateInfo::default()
                         .push_next(&mut semaphore_type),
-                    None,
-                ).expect("failed to create `vkSemaphore`")
-        };
+                    cb,
+                )
+        }).expect("failed to create `vkSemaphore`");
         Self {
             pool,
             tag: None,
@@ -143,12 +143,14 @@ impl CommandBuffer {
 
     #[inline]
     pub(crate) fn with_binary_semaphore(mut self) -> Self {
-        let handle = unsafe { self.pool()
+        let handle = self.pool().device().use_allocation_callbacks(|cb| unsafe { self.pool()
             .device()
             .functions()
-            .create_semaphore(&vk::SemaphoreCreateInfo::default(), None)
-            .expect("failed to create `VkSemaphore`")
-        };
+            .create_semaphore(
+                &vk::SemaphoreCreateInfo::default(),
+                cb,
+            ).expect("failed to create `VkSemaphore`")
+        });
         self.binary_semaphore = Some(handle);
         self
     }
@@ -353,22 +355,25 @@ impl Drop for CommandBuffer {
                     ).expect("`vkResetCommandBuffer` failed");
             }
         }
-        unsafe {
+        self.pool.device().use_allocation_callbacks(|cb| unsafe {
             self.pool.unuse_command_buffer(self.index);
             self.pool.device()
                 .functions()
                 .destroy_semaphore(
                     self.semaphore_handle,
-                    None,
+                    cb,
                 );
             if let Some(semaphore) = self.binary_semaphore {
                 self.pool.device()
                     .functions()
                     .destroy_semaphore(
                         semaphore,
-                        None,
+                        cb,
                     );
             }
+        });
+        if let Some(tag) = &self.tag {
+            log::info!("destroyed `CommandBuffer` `{tag}`");
         }
     }
 }

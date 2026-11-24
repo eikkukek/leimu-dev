@@ -92,10 +92,13 @@ struct Inner {
 impl Drop for Inner {
 
     fn drop(&mut self) {
-        unsafe { self.device
+        self.device.use_allocation_callbacks(|cb|unsafe { self.device
             .functions()
-            .destroy_sampler(self.handle, None);
-        }
+            .destroy_sampler(   
+                self.handle,
+                cb
+            );
+        });
         if let Some(tag) = &self.attributes.tag {
             log::info!("destroyed `Sampler` `{tag}`");
         }
@@ -232,10 +235,10 @@ impl Sampler {
             .max_lod(attributes.max_lod)
             .border_color(attributes.border_color.into())
             .unnormalized_coordinates(unnormalized_coordinates);
-        let handle = unsafe { device
+        let handle = device.use_allocation_callbacks(|cb| unsafe { device
             .functions()
-            .create_sampler(&create_info, None)
-        }.describe_err("Failed to create `VkSampler`")?;
+            .create_sampler(&create_info, cb)
+        }).describe_err("Failed to create `VkSampler`")?;
         if let Some(tag) = attributes.tag {
             log::info!("created `Sampler` `{tag}`");
         }

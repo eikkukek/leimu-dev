@@ -419,18 +419,18 @@ impl Image
             );
             create_info = create_info.push_next(stencil_usage_info);
         }
-        let handle = unsafe { device.functions()
-            .create_image(&create_info, None)
-            .describe_err("failed to create `VkImage`")?
-        };
+        let handle = device.use_allocation_callbacks(|cb| unsafe { device.functions()
+            .create_image(&create_info, cb)
+            .describe_err("failed to create `VkImage`")
+        })?;
         let mut guard = DropGuard::new((&device, handle, None),
-            |(device, handle, memory)| unsafe {
+            |(device, handle, memory)| device.use_allocation_callbacks(|cb| unsafe {
                 device.functions()
-                    .destroy_image(handle, None);
+                    .destroy_image(handle, cb);
                 if let Some(mem) = memory {
                     device.deallocate_memory(mem);
                 }
-            }
+            })
         );
         let memory_requirements = unsafe {
             device.functions()
@@ -500,15 +500,15 @@ impl Image
         let mut timeline_info = vk::SemaphoreTypeCreateInfo
             ::default()
             .semaphore_type(vk::SemaphoreType::TIMELINE);
-        let semaphore_handle = unsafe {
+        let semaphore_handle = device.use_allocation_callbacks(|cb| unsafe {
             device.functions()
                 .create_semaphore(
                     &vk::SemaphoreCreateInfo
                         ::default()
                         .push_next(&mut timeline_info),
-                    None,
-                ).expect("failed to create `VkSemaphore`")
-        };
+                    cb,
+                )
+        }).expect("failed to create `VkSemaphore`");
         DropGuard::dismiss(guard);
         unsafe {
             attributes.view_formats.as_ptr()
@@ -769,17 +769,22 @@ impl Drop for Image
                 .fetch_sub(1, atomic::Ordering::AcqRel);
             if ref_count == 1 {
                 if self.inner().handle_type == HandleType::Created {
-                    self.device()
+                    self.device().use_allocation_callbacks(|cb| self.device()
                         .functions()
-                        .destroy_image(self.handle(), None);
+                        .destroy_image(
+                            self.handle(),
+                            cb,
+                        ));
                     self.device()
                         .deallocate_memory(*self.memory());
                 }
-                self.device()
-                    .functions()
-                    .destroy_semaphore(
-                        self.inner().semaphore_handle,
-                        None
+                self.device().use_allocation_callbacks(|cb|
+                    self.device()
+                        .functions()
+                        .destroy_semaphore(
+                            self.inner().semaphore_handle,
+                            cb,
+                        )
                     );
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
@@ -804,15 +809,15 @@ impl Image {
         let mut timeline_info = vk::SemaphoreTypeCreateInfo
             ::default()
             .semaphore_type(vk::SemaphoreType::TIMELINE);
-        let semaphore_handle = unsafe {
+        let semaphore_handle = device.use_allocation_callbacks(|cb| unsafe {
             device.functions()
                 .create_semaphore(
                     &vk::SemaphoreCreateInfo
                         ::default()
                         .push_next(&mut timeline_info),
-                    None,
-                ).expect("failed to create `VkSemaphore`")
-        };
+                    cb,
+                )
+        }).expect("failed to create `VkSemaphore`");
         let mut inner = NonNull::dangling();
         let aspects = format.aspects();
         let states_len = aspects.bits().count_ones() as usize;

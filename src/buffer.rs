@@ -111,14 +111,21 @@ impl Buffer
             );
             create_info = create_info.push_next(info);
         }
-        let handle = unsafe {
+        let handle = device.use_allocation_callbacks(|cb| unsafe {
             device.functions()
-                .create_buffer(&create_info, None)
-        }.describe_err("failed to create `VkBuffer`")?;
+                .create_buffer(
+                    &create_info,
+                    cb,
+                )
+        }).describe_err("failed to create `VkBuffer`")?;
         let mut guard = DropGuard::new((&device, handle, None),
             |(device, handle, memory)| unsafe {
-                device.functions()
-                    .destroy_buffer(handle, None);
+                device.use_allocation_callbacks(|cb| { device.functions()
+                    .destroy_buffer(
+                        handle,
+                        cb
+                    )
+                });
                 if let Some(mem) = memory {
                     device.deallocate_memory(mem);
                 }
@@ -382,9 +389,13 @@ impl Drop for Buffer
                 .ref_count
                 .fetch_sub(1, atomic::Ordering::AcqRel);
             if ref_count == 1 {
-                self.device()
+                self.device().use_allocation_callbacks(|cb| self.device()
                     .functions()
-                    .destroy_buffer(self.handle(), None);
+                    .destroy_buffer(
+                        self.handle(),
+                        cb,
+                    )
+                );
                 self.device()
                     .deallocate_memory(*self.memory());
                 let pack_layout = self.inner.as_ref().pack_layout;

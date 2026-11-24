@@ -2,6 +2,16 @@ use bytemuck::{NoUninit, Zeroable, ByteEq, ByteHash};
 use tuhka::vk;
 
 use crate::*;
+use sync::{
+    atomic::{self, AtomicU64},
+    Mutex,
+    Arc,
+};
+
+pub struct QueryPoolAttributes<'a> {
+    pub tag: Option<&'a str>,
+    pub query_type: QueryType,
+}
 
 bitflags::bitflags! {
     /// A bitmask of pipeline statistic query types.
@@ -82,4 +92,15 @@ pub enum QueryType {
     ///
     /// [`pipeline_statistics_query`]: vk_10::pipeline_statistics_query
     PipelineStatistics(PipelineStatisticQueryType),
+}
+
+struct Inner {
+    tag: CompactStr,
+}
+
+pub struct QueryPool {
+    inner: Arc<Inner>,
+}
+
+impl QueryPool {
 }

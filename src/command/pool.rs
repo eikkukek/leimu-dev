@@ -70,12 +70,16 @@ impl Drop for Inner {
                 .functions()
                 .device_wait_idle()
                 .expect("GPU hang");
-            self.device
+            self.device.use_allocation_callbacks(|cb| self.device
                 .functions()
                 .destroy_command_pool(
                     self.handle,
-                    None
-                );
+                    cb,
+                ),
+            );
+            if let Some(tag) = &self.tag {
+                log::info!("destroyed `CommandPool` `{tag}`");
+            }
         }
     }
 }
@@ -98,16 +102,22 @@ impl CommandPool {
         tag: Option<&str>,
         queue: DeviceQueue,
     ) -> Result<Self, Error> {
+        if let Some(tag) = tag {
+            log::info!("validating `CommandPool` `{tag}`");
+        }
         if device.id() != queue.device_id() {
             panic!("queue `{}` originates from a different device", queue.tag());
         }
         let create_info = vk::CommandPoolCreateInfo::default()
             .queue_family_index(queue.family_index())
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
-        let handle = unsafe { device
+        let handle = device.use_allocation_callbacks(|cb| unsafe { device
             .functions()
-            .create_command_pool(&create_info, None)
-        }.describe_err("failed to create `VkCommandPool`")?;
+            .create_command_pool(
+                &create_info,
+                cb,
+            )
+        }).describe_err("failed to create `VkCommandPool`")?;
         Ok(Self {
             inner: Inner {
                 tag: tag.map(Into::into),

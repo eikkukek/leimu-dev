@@ -323,10 +323,9 @@ impl PollState {
     }
 }
 
-struct DeviceLock { _lock: MutexGuard<'static, DeviceId> }
-
-unsafe impl Send for DeviceLock {}
-unsafe impl Sync for DeviceLock {}
+struct DeviceLock {
+    _lock: MutexGuard<'static, DeviceId>,
+}
 
 struct Inner {
     device_id: DeviceId,
@@ -340,19 +339,20 @@ struct Inner {
     supported_enums: HashMap<TypeId, HashSet<EnumSupportObj>>,
     supported_flags32: HashMap<TypeId, FlagSupportObj<Flags32>>,
     poll_state: Mutex<PollState>,
-    //supported_flags64: HashMap<TypeId, FlagSupportObj<Flags64>>,
 }
 
 impl Drop for Inner {
 
     fn drop(&mut self) {
         crate::features::clear_devices();
-        unsafe { self.instance.functions()
-            .destroy_device(
-                &self.functions,
-                None
-            );
-        }
+        self.instance.use_allocation_callbacks(|cb| {
+            unsafe { self.instance.functions()
+                .destroy_device(
+                    &self.functions,
+                    cb,
+                );
+            }
+        });
         log::info!("destroyed `Device`");
     }
 }
@@ -508,21 +508,24 @@ impl Device {
             .queue_create_infos(&queue_create_infos)
             .p_enabled_extension_names(&p_enabled_extension_names)
             .push_next(&mut vk_features);
-        let functions = unsafe {
+        let functions = instance.use_allocation_callbacks(|cb| unsafe {
             instance.functions().create_device(
                 gpu_info.handle,
                 &create_info,
-                None
-            ).describe_err("failed to create `VkDevice`")?
-        };
+                cb,
+            ).describe_err("failed to create `VkDevice`")
+        })?;
         struct Guard<'a>(&'a Instance, tuhka::Device);
         impl Drop for Guard<'_> {
 
             fn drop(&mut self) {
-                unsafe {
+                self.0.use_allocation_callbacks(|cb| unsafe {
                     self.0.functions()
-                        .destroy_device(&self.1, None);
-                }
+                        .destroy_device(
+                            &self.1,
+                            cb
+                        );
+                })
             }
         }
         impl Guard<'_> {
@@ -1121,12 +1124,12 @@ impl Device {
     ) -> Result<MemoryAllocation, Error> {
         let selected_index = memory_type_indices[0];
         Ok(MemoryAllocation {
-            handle: unsafe { self.functions().allocate_memory(
+            handle: self.use_allocation_callbacks(|cb| unsafe { self.functions().allocate_memory(
                 &vk::MemoryAllocateInfo::default()
                     .allocation_size(size)
                     .memory_type_index(selected_index),
-                None
-            ) }.describe_err("failed to allocate `VkDeviceMemory`")?,
+                cb,
+            ) }.describe_err("failed to allocate `VkDeviceMemory`"))?,
             offset: 0,
             size,
             memory_type_index: selected_index,
@@ -1138,8 +1141,23 @@ impl Device {
         allocation: MemoryAllocation,
     ) {
         unsafe {
-            self.functions()
-                .free_memory(allocation.handle, None);
+            self.use_allocation_callbacks(|cb| {
+                self.functions()
+                    .free_memory(
+                        allocation.handle,
+                        cb,
+                    );
+                }
+            )
+            
         }
+    }
+
+    #[inline]
+    pub(crate) fn use_allocation_callbacks<T>(
+        &self,
+        f: impl FnOnce(Option<&vk::AllocationCallbacks<'_>>) -> T
+    ) -> T {
+        self.instance().use_allocation_callbacks(f)
     }
 }

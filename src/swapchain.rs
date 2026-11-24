@@ -48,13 +48,13 @@ impl Fence {
     #[inline]
     pub fn new(device: Device) -> Self {
         Self {
-            handle: unsafe {
+            handle: device.use_allocation_callbacks(|cb| unsafe {
                 device.functions()
                     .create_fence(
                         &vk::FenceCreateInfo::default(),
-                        None,
-                    ).expect("failed to create `VkFence`")
-            },
+                        cb,
+                    )
+            }).expect("failed to create `VkFence`"),
             device,
         } 
     }
@@ -64,11 +64,14 @@ impl Drop for Fence {
 
     #[inline]
     fn drop(&mut self) {
-        unsafe {
+        self.device.use_allocation_callbacks(|cb| unsafe {
             self.device
                 .functions()
-                .destroy_fence(self.handle, None);
-        }
+                .destroy_fence( 
+                    self.handle,
+                    cb,
+                );
+        })
     }
 }
 
@@ -105,9 +108,10 @@ impl Drop for Inner<'_> {
             unsafe {
                 self.device.functions()
                     .device_wait_idle().ok();
-                swapchain_functions.destroy_swapchain(
-                    handle, None
-                );
+                self.device.use_allocation_callbacks(|cb| { swapchain_functions.destroy_swapchain(
+                    handle,
+                    cb,
+                ) });
             }
             if let Some(tag) = &self.tag {
                 log::info!("destroyed `Swapchain` `{tag}`");
@@ -258,7 +262,13 @@ impl<'a> Swapchain<'a> {
                     .functions()
                     .device_wait_idle()
                     .describe_err("GPU hang")?;
-                swapchain_functions.destroy_swapchain(handle, None);
+                self.device()
+                    .use_allocation_callbacks(|cb| {
+                        swapchain_functions.destroy_swapchain(
+                            handle,
+                            cb,
+                        )
+                });
             }
         }
         lock.image_views.clear();
@@ -377,14 +387,19 @@ impl<'a> Swapchain<'a> {
             .composite_alpha(vk_composite_alpha)
             .present_mode(present_mode)
             .clipped(params.clip);
-        let handle = unsafe { swapchain_functions
-            .create_swapchain(&create_info, None)
-        }.describe_err("failed to create `VkSwapchain`")?;
+        let handle = self.device().use_allocation_callbacks(|cb| unsafe { swapchain_functions
+            .create_swapchain(&create_info, cb)
+        }.describe_err("failed to create `VkSwapchain`"))?;
         let guard = DropGuard::new(
             handle,
             |handle| unsafe {
-                swapchain_functions
-                    .destroy_swapchain(handle, None);
+                self.device().use_allocation_callbacks(|cb| {
+                    swapchain_functions
+                        .destroy_swapchain(
+                            handle,
+                            cb,
+                        );
+                })
             },
         );
         let image_handles = unsafe {

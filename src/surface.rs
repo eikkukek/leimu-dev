@@ -23,10 +23,10 @@ impl Drop for Inner {
 
     fn drop(&mut self) {
         unsafe {
-            self.instance
+            self.instance.use_allocation_callbacks(|cb| self.instance
                 .surface_functions()
                 .unwrap()
-                .destroy_surface(self.handle, None);
+                .destroy_surface(self.handle, cb));
             if let Some(tag) = &self.tag {
                 log::info!("destroyed `Surface` `{tag}`");
             }
@@ -63,14 +63,15 @@ impl<'a> Surface<'a> {
                 "`window` seems to have a different display handle than `instance`",
             ))?
         }
-        let handle = unsafe { create_surface(
+        let handle = instance.use_allocation_callbacks(|cb| unsafe {
+            create_surface(
             instance.functions(),
             display_handle,
             window.window_handle()
                 .map_err(|_| err!("failed to get window handle"))?
                 .as_raw(),
-            None,
-        ).describe_err("failed to create `VkSurfaceKHR")? };
+            cb,
+        ).describe_err("failed to create `VkSurfaceKHR") })?;
         if let Some(tag) = tag {
             log::info!("created `Surface` `{tag}`");
         }

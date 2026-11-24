@@ -75,7 +75,7 @@ impl<T: Send + Sync + 'static> Display for FeatureName<T> {
 impl<T: Send + Sync + 'static> Clone for FeatureName<T> {
     #[inline]
     fn clone(&self) -> Self {
-        Self { name: self.name, _marker: PhantomData }
+        *self
     }
 }
 impl<T: Send + Sync + 'static> Copy for FeatureName<T> {}

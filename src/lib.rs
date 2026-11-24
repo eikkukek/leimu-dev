@@ -10,6 +10,7 @@ pub(crate) mod sync;
 pub mod vec;
 pub mod sorted;
 pub mod iter;
+mod vk_callbacks;
 mod string;
 mod c_string;
 mod format;
@@ -34,7 +35,7 @@ mod buffer;
 mod surface;
 mod swapchain;
 mod shader;
-mod queries;
+//mod queries;
 mod statics;
 
 pub(crate) mod macros;
@@ -68,7 +69,7 @@ pub use image::*;
 pub use buffer::*;
 pub use surface::*;
 pub use swapchain::*;
-pub use queries::*;
+//pub use queries::*;
 pub use shader::*;
 
 pub use raw_window_handle;

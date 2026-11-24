@@ -68,7 +68,7 @@ impl<T> HasImageViewExt for T
 
 /// Specifies parameters for [`ImageView`] creation.
 ///
-/// This **can** be used to create an [`ImageView`] with [`Device::create_image_view`].
+/// This **can** be used to create an [`ImageView`] with [`Image::create_view`].
 ///
 /// # Valid usage
 /// In addition to the valid usages documented in each each field:
@@ -109,7 +109,7 @@ struct Inner
 
 /// Represents an image view of an [`Image`].
 ///
-/// To create an image view, use [`Device::create_image_view`].
+/// To create an image view, use [`Image::create_view`].
 pub struct ImageView
 {
     inner: NonNull<Inner>,
@@ -340,7 +340,7 @@ impl ImageView
                         "`dimensions` is `Dim2`, but calculated layer count is greater than `1`",
                     ))?
                 }
-                let mut true_range = vk::ImageSubresourceRange {
+                let true_range = vk::ImageSubresourceRange {
                     aspect_mask: vk::ImageAspectFlags::from_raw(view_aspects.bits()),
                     base_mip_level: attributes.range.base_mip_level,
                     level_count: 1,
@@ -365,7 +365,7 @@ impl ImageView
                         "`dimensions` is `Dim3`, but `layer_count` is not `Some(1)` or `None`",
                     ))?
                 }
-                let mut true_range = vk::ImageSubresourceRange {
+                let true_range = vk::ImageSubresourceRange {
                     aspect_mask: vk::ImageAspectFlags::from_raw(view_aspects.bits()),
                     base_mip_level: attributes.range.base_mip_level,
                     level_count: 1,
@@ -381,16 +381,20 @@ impl ImageView
             .format(view_format.into())
             .components(attributes.component_mapping.into())
             .subresource_range(vk_subresource_range);
-        let handle = unsafe { image.device()
+        let handle = image.device().use_allocation_callbacks(|cb| unsafe { image.device()
             .functions()
-            .create_image_view(&create_info, None)
-            .describe_err("failed to create `VkImageView`")?
-        };
+            .create_image_view(&create_info, cb)
+            .describe_err("failed to create `VkImageView`")
+        })?;
         let guard = DropGuard::new((&image, handle),
             |(image, handle)| unsafe {
-                image.device()
+                image.device().use_allocation_callbacks(|cb| { image.device()
                     .functions()
-                    .destroy_image_view(handle, None);
+                    .destroy_image_view(
+                        handle,
+                        cb,
+                    )
+                });
             }
         );
         let mut inner = NonNull::dangling();
@@ -537,9 +541,14 @@ impl Drop for ImageView
                 .ref_count
                 .fetch_sub(1, atomic::Ordering::AcqRel);
             if ref_count == 1 {
-                self.device()
-                    .functions()
-                    .destroy_image_view(self.handle(), None);
+                self.device().use_allocation_callbacks(|cb| {
+                    self.device()
+                        .functions()
+                        .destroy_image_view(
+                            self.handle(),
+                            cb,
+                        )
+                    });
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
                 if let Some(tag) = self.tag() {

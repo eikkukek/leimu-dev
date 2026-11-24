@@ -264,7 +264,7 @@ pub struct PipelineLayoutSetAttributes {
 
 /// Specifies parameters for creating an [`PipelineLayout`].
 ///
-/// This **can** be used to create a [`PipelineLayout`] with [`Device::create_shader_set`].
+/// This **can** be used to create a [`PipelineLayout`] with [`Device::create_pipeline_layout`].
 pub struct PipelineLayoutAttributes<'a> {
     /// An optional debug tag of the pipeline layout.
     pub tag: Option<&'a str>,
@@ -364,28 +364,31 @@ impl Drop for PipelineLayout {
                 .ref_count
                 .fetch_sub(1, atomic::Ordering::AcqRel);
             if ref_count == 1 {
-                self.inner()
+                self.inner().device.use_allocation_callbacks(|cb| self.inner()
                     .device
                     .functions()
                     .destroy_pipeline_layout(
                         *self.inner()
                             .handle
                             .lock(),
-                        None
-                    );
+                        cb,
+                    )
+                );
                 self.inner().resources.drop_in_place();
                 for layout in self
                     .inner()
                     .set_layouts.iter()
                     .copied()
                 {
-                    self.inner()
-                        .device
-                        .functions()
-                        .destroy_descriptor_set_layout(
-                            layout,
-                            None,
-                        );
+                    self.inner().device.use_allocation_callbacks(|cb|
+                        self.inner()
+                            .device
+                            .functions()
+                            .destroy_descriptor_set_layout(
+                                layout,
+                                cb,
+                            )
+                    );
                 }
                 let pack_layout = self.inner.as_ref().pack_layout;
                 self.inner.drop_in_place();
@@ -747,11 +750,13 @@ impl PipelineLayout {
             set_layouts,
             |ptr| unsafe {
                 for &layout in ptr.iter() {
-                    device.functions()
-                        .destroy_descriptor_set_layout(
-                            layout,
-                            None,
-                        );
+                    device.use_allocation_callbacks(|cb| {
+                        device.functions()
+                            .destroy_descriptor_set_layout(
+                                layout,
+                                cb,
+                            );
+                    })
                 }
             }
         );
@@ -821,14 +826,14 @@ impl PipelineLayout {
                 },
                 ..Default::default()
             }.bindings(&bindings);
-            *set = unsafe {
+            *set = device.use_allocation_callbacks(|cb| unsafe {
                 device.functions()
                     .create_descriptor_set_layout(
                         &create_info,
-                        None
+                        cb,
                     ).describe_err("failed to create `VkDescriptorSetLayout")
-                    .map_err(PipelineLayoutError::Internal)?
-            };
+                    .map_err(PipelineLayoutError::Internal)
+            })?;
         }
         let mut pcs = FixedVec32::with_capacity_in(
             vecs.1.len(),
@@ -842,14 +847,14 @@ impl PipelineLayout {
         let create_info = vk::PipelineLayoutCreateInfo::default()
             .set_layouts(&vecs.2)
             .push_constant_ranges(&pcs);
-        let handle = unsafe {
+        let handle = device.use_allocation_callbacks(|cb| unsafe {
             device.functions()
                 .create_pipeline_layout(
                     &create_info,
-                    None
+                    cb,
                 ).describe_err("failed to create `VkPipelineLayout`")
-                .map_err(PipelineLayoutError::Internal)?
-        };
+                .map_err(PipelineLayoutError::Internal)
+        })?;
         vecs.3 = false;
         let pack_layout = DropGuard::dismiss(alloc_guard).1;
         DropGuard::dismiss(set_guard);
